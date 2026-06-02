@@ -321,7 +321,7 @@ body { min-height: 100vh; }
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(115,215,0,.25);border:1px solid var(--green);display:inline-block"></span> &ge;100%</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(240,180,41,.25);border:1px solid var(--amber);display:inline-block"></span> 80&ndash;99%</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(248,81,73,.25);border:1px solid var(--red);display:inline-block"></span> &lt;80%</span>
-      <span>8% cancellation applied Jun&ndash;Dec on gross KM</span>
+      <span id="lv-cancel-note">6% cancellation applied Jun-Dec on gross KM</span>
     </div>
   </div>
 
@@ -406,7 +406,7 @@ body { min-height: 100vh; }
         <tbody id="summary-tbody"></tbody>
       </table>
       <div style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.8">
-        <div>Cancellation: 8% on Jun–Dec gross</div>
+        <div id="cancel-footnote">Cancellation: 6% on Jun–Dec gross</div>
         <div>Actuals lock: Monday of following week</div>
         <div>W23 = current live week</div>
       </div>
@@ -437,7 +437,7 @@ W40:'Oct',W41:'Oct',W42:'Oct',W43:'Oct',W44:'Oct',
 W45:'Nov',W46:'Nov',W47:'Nov',W48:'Nov',
 W49:'Dec',W50:'Dec',W51:'Dec',W52:'Dec',W53:'Dec'
 };
-const CANCEL = 0.08;
+let CANCEL = 0.06;
 let BUDGET = {};
 let ACTUALS = {};
 let weeklyExisting = {};
@@ -451,13 +451,17 @@ async function sbFetch(table) {
 }
 
 async function loadDataFromSupabase() {
-  const [budgetRows, actualsRows, weeklyRows, newLinesRows] = await Promise.all([
-    sbFetch('budget'), sbFetch('actuals'), sbFetch('weekly_existing'), sbFetch('new_lines')
+  const [budgetRows, actualsRows, weeklyRows, newLinesRows, settingsRows] = await Promise.all([
+    sbFetch('budget'), sbFetch('actuals'), sbFetch('weekly_existing'), sbFetch('new_lines'), sbFetch('settings')
   ]);
   budgetRows.forEach(r => { BUDGET[r.month] = r.km; });
   actualsRows.forEach(r => { ACTUALS[r.month] = r.km; });
   weeklyRows.forEach(r => { weeklyExisting[r.week] = r.km; });
   newLines = newLinesRows.map(r => ({ code: r.code, route: r.route, goLive: r.go_live, weeklyKm: r.weekly_km }));
+  const cancelSetting = settingsRows.find(r => r.key === 'cancellation_rate');
+  if (cancelSetting) CANCEL = parseFloat(cancelSetting.value);
+  const ci = document.getElementById('cancel-input');
+  if (ci) ci.value = Math.round(CANCEL * 100);
   document.getElementById('last-update-label').textContent = 'Last updated: ' + new Date().toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
 }
 
@@ -845,6 +849,25 @@ function buildLeadershipTable(monthly) {
   rows.push(`<tr class="lv-vs"><td>vs Forecast</td>${vsFcstCells}<td class="${pctClass(totVsFore)+' lv-total'}">${totVsFore!==null?totVsFore+'%':'-'}</td></tr>`);
 
   tbody.innerHTML = rows.join('');
+}
+
+async function applyCancelRate() {
+  const input = document.getElementById('cancel-input');
+  const val = parseFloat(input.value);
+  if (isNaN(val) || val < 0 || val > 100) { alert('Enter a value between 0 and 100'); return; }
+  CANCEL = val / 100;
+  try {
+    await fetch('https://aicdfmldtpftedcbvjhi.supabase.co/rest/v1/settings', {
+      method: 'POST',
+      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpY2RmbWxkdHBmdGVkY2J2amhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTA0MTksImV4cCI6MjA5NTUyNjQxOX0.BSnasDVpJo9w4D8j6aUHTjRQR9cP0i37RDIaspvmBbA', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpY2RmbWxkdHBmdGVkY2J2amhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTA0MTksImV4cCI6MjA5NTUyNjQxOX0.BSnasDVpJo9w4D8j6aUHTjRQR9cP0i37RDIaspvmBbA', 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify([{ key: 'cancellation_rate', value: String(CANCEL) }])
+    });
+  } catch(e) { console.warn('Could not save to Supabase:', e); }
+  const lvNote = document.getElementById('lv-cancel-note');
+  if (lvNote) lvNote.textContent = Math.round(CANCEL*100) + '% cancellation applied Jun-Dec on gross KM';
+  renderAll();
+  input.style.borderBottomColor = 'var(--green)';
+  setTimeout(() => { input.style.borderBottomColor = 'var(--red)'; }, 1500);
 }
 
 function renderAll() {
