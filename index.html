@@ -420,80 +420,46 @@ body { min-height: 100vh; }
 </div>
 
 <script>
-// ── DATA ─────────────────────────────────────────────────────────────────────
+// ── SUPABASE CONFIG ─────────────────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://aicdfmldtpftedcbvjhi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpY2RmbWxkdHBmdGVkY2J2amhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NTA0MTksImV4cCI6MjA5NTUyNjQxOX0.BSnasDVpJo9w4D8j6aUHTjRQR9cP0i37RDIaspvmBbA';
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const WEEKS  = ['W23','W24','W25','W26','W27','W28','W29','W30','W31','W32','W33','W34',
-                'W35','W36','W37','W38','W39','W40','W41','W42','W43','W44','W45','W46',
-                'W47','W48','W49','W50','W51','W52','W53'];
-
+const WEEKS = ['W23','W24','W25','W26','W27','W28','W29','W30','W31','W32','W33','W34',
+'W35','W36','W37','W38','W39','W40','W41','W42','W43','W44','W45','W46',
+'W47','W48','W49','W50','W51','W52','W53'];
 const WEEK_MONTH = {
-  W23:'Jun',W24:'Jun',W25:'Jun',W26:'Jun',
-  W27:'Jul',W28:'Jul',W29:'Jul',W30:'Jul',W31:'Jul',
-  W32:'Aug',W33:'Aug',W34:'Aug',W35:'Aug',
-  W36:'Sep',W37:'Sep',W38:'Sep',W39:'Sep',
-  W40:'Oct',W41:'Oct',W42:'Oct',W43:'Oct',W44:'Oct',
-  W45:'Nov',W46:'Nov',W47:'Nov',W48:'Nov',
-  W49:'Dec',W50:'Dec',W51:'Dec',W52:'Dec',W53:'Dec'
+W23:'Jun',W24:'Jun',W25:'Jun',W26:'Jun',
+W27:'Jul',W28:'Jul',W29:'Jul',W30:'Jul',W31:'Jul',
+W32:'Aug',W33:'Aug',W34:'Aug',W35:'Aug',
+W36:'Sep',W37:'Sep',W38:'Sep',W39:'Sep',
+W40:'Oct',W41:'Oct',W42:'Oct',W43:'Oct',W44:'Oct',
+W45:'Nov',W46:'Nov',W47:'Nov',W48:'Nov',
+W49:'Dec',W50:'Dec',W51:'Dec',W52:'Dec',W53:'Dec'
 };
-
-const BUDGET = {Jan:5504558,Feb:4373813,Mar:4656732,Apr:4904873,May:5333735,
-                Jun:5016151,Jul:4251180,Aug:4561804,Sep:4551377,Oct:4961577,Nov:4751358,Dec:5132842};
-const ACTUALS = {Jan:4551111,Feb:3897253,Mar:4203972,Apr:4081437,May:5420402};
 const CANCEL = 0.08;
+let BUDGET = {};
+let ACTUALS = {};
+let weeklyExisting = {};
+let newLines = [];
 
-// Weekly KM from existing lines (W23–W53) — updated via Excel upload
-let weeklyExisting = {
-  W23:1226438,W24:1240765,W25:1237682,W26:1240906,W27:1245635,W28:1242542,
-  W29:1242624,W30:1241296,W31:1240149,W32:1240149,W33:1239246,W34:1239246,
-  W35:1239246,W36:1239246,W37:1239246,W38:1239246,W39:1239246,W40:1239246,
-  W41:1239246,W42:1239246,W43:1239246,W44:1239246,W45:1239246,W46:1239246,
-  W47:1239246,W48:1239246,W49:1239246,W50:1239246,W51:1239246,W52:1239246,W53:710616
-};
+async function sbFetch(table) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?select=*', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  return r.json();
+}
 
-// New lines — editable go-live weeks
-let newLines = [
-  {code:'IN0210B',   route:'Delhi – Manali',         goLive:'W23', weeklyKm:6228},
-  {code:'IN2310C',   route:'Mumbai – Ujjain',         goLive:'W23', weeklyKm:8304},
-  {code:'IN4308',    route:'Bangalore – Chennai (1)',  goLive:'W23', weeklyKm:5543},
-  {code:'IN4307',    route:'Bangalore – Chennai (2)',  goLive:'W23', weeklyKm:5395},
-  {code:'IN4306',    route:'Bangalore – Chennai (3)',  goLive:'W23', weeklyKm:5723},
-  {code:'BLR-KOCHI-1',route:'Bangalore – Kochi (1)',  goLive:'W23', weeklyKm:6758},
-  {code:'BLR-KOCHI-3',route:'Bangalore – Kochi (3)',  goLive:'W23', weeklyKm:6758},
-  {code:'IN0310H',   route:'Delhi – Dehradun (1)',     goLive:'W24', weeklyKm:6888},
-  {code:'IN0310G',   route:'Delhi – Dehradun (2)',     goLive:'W24', weeklyKm:6888},
-  {code:'IN0210B-2', route:'Delhi – Manali (2)',       goLive:'W24', weeklyKm:6228},
-  {code:'IN2820A',   route:'Mumbai – Goa',             goLive:'W24', weeklyKm:7870},
-  {code:'IN4302',    route:'Bangalore – Chennai (4)',  goLive:'W24', weeklyKm:5977},
-  {code:'BLR-KOCHI-4',route:'Bangalore – Kochi (4)',  goLive:'W24', weeklyKm:6758},
-  {code:'HYD-VIZ-1', route:'Hyderabad – Vizag',       goLive:'W24', weeklyKm:7534},
-  {code:'BLR-HYD-1', route:'Bangalore – Hyderabad',   goLive:'W24', weeklyKm:7954},
-  {code:'IN0520B',   route:'Delhi – Indore (1)',       goLive:'W26', weeklyKm:7831},
-  {code:'IN0520C',   route:'Delhi – Indore (2)',       goLive:'W26', weeklyKm:7831},
-  {code:'BLR-KOCHI-2',route:'Bangalore – Kochi (2)',  goLive:'W26', weeklyKm:6758},
-  {code:'IN0310L-1', route:'Delhi – Dehradun (L1)',    goLive:'W36', weeklyKm:6888},
-  {code:'IN0310L-2', route:'Delhi – Dehradun (L2)',    goLive:'W36', weeklyKm:6888},
-  {code:'IN0310L-3', route:'Delhi – Dehradun (L3)',    goLive:'W36', weeklyKm:6888},
-  {code:'IN0310L-4', route:'Delhi – Dehradun (L4)',    goLive:'W36', weeklyKm:6888},
-  {code:'IN0310L-5', route:'Delhi – Dehradun (L5)',    goLive:'W36', weeklyKm:6888},
-  {code:'IN0121-1',  route:'Delhi – Katra (1)',        goLive:'W36', weeklyKm:7770},
-  {code:'IN0121-2',  route:'Delhi – Katra (2)',        goLive:'W36', weeklyKm:7770},
-  {code:'IN0121-3',  route:'Delhi – Katra (3)',        goLive:'W36', weeklyKm:7770},
-  {code:'IN0121-4',  route:'Delhi – Katra (4)',        goLive:'W36', weeklyKm:7770},
-  {code:'IN0121-5',  route:'Delhi – Katra (5)',        goLive:'W36', weeklyKm:7770},
-  {code:'IN2310C-2', route:'Mumbai – Ujjain (2)',      goLive:'W36', weeklyKm:8343},
-  {code:'IN2310C-3', route:'Mumbai – Ujjain (3)',      goLive:'W36', weeklyKm:8343},
-  {code:'IN2514-1',  route:'Hyderabad – Pune (1)',     goLive:'W36', weeklyKm:8965},
-  {code:'IN2514-2',  route:'Hyderabad – Pune (2)',     goLive:'W36', weeklyKm:8965},
-  {code:'IN4415-1',  route:'Bangalore – Kochi (5)',    goLive:'W36', weeklyKm:7239},
-  {code:'IN4415-2',  route:'Bangalore – Kochi (6)',    goLive:'W36', weeklyKm:7239},
-  {code:'IN4710A-1', route:'Bangalore – Pune (1)',     goLive:'W36', weeklyKm:6720},
-  {code:'IN4710A-2', route:'Bangalore – Pune (2)',     goLive:'W36', weeklyKm:6720},
-  {code:'IN5218',    route:'Chennai – Hyderabad',      goLive:'W36', weeklyKm:9068},
-  {code:'IN5341-1',  route:'Hyderabad – Tirupati (1)', goLive:'W36', weeklyKm:6896},
-  {code:'IN5341-2',  route:'Hyderabad – Tirupati (2)', goLive:'W36', weeklyKm:6896},
-  {code:'IN5341-3',  route:'Hyderabad – Tirupati (3)', goLive:'W36', weeklyKm:6896},
-  {code:'IN5341-4',  route:'Hyderabad – Tirupati (4)', goLive:'W36', weeklyKm:6896},
-];
+async function loadDataFromSupabase() {
+  const [budgetRows, actualsRows, weeklyRows, newLinesRows] = await Promise.all([
+    sbFetch('budget'), sbFetch('actuals'), sbFetch('weekly_existing'), sbFetch('new_lines')
+  ]);
+  budgetRows.forEach(r => { BUDGET[r.month] = r.km; });
+  actualsRows.forEach(r => { ACTUALS[r.month] = r.km; });
+  weeklyRows.forEach(r => { weeklyExisting[r.week] = r.km; });
+  newLines = newLinesRows.map(r => ({ code: r.code, route: r.route, goLive: r.go_live, weeklyKm: r.weekly_km }));
+  document.getElementById('last-update-label').textContent = 'Last updated: ' + new Date().toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+}
 
 // ── COMPUTE ──────────────────────────────────────────────────────────────────
 function weekNum(w) { return parseInt(w.replace('W','')); }
@@ -735,7 +701,7 @@ function updateGoLive(sel) {
 }
 
 function recalcFromNewLines() {
-  renderAll();
+  loadDataFromSupabase().then(() => { renderAll(); }).catch(err => { console.error('Supabase load failed:', err); renderAll(); });
   document.getElementById('nl-save-note').textContent = '✓ Dashboard updated from new go-live weeks.';
   document.getElementById('nl-save-note').style.color = 'var(--green)';
 }
