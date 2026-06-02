@@ -884,7 +884,7 @@ function renderAll() {
   renderNLTable();
 }
 
-renderAll();
+loadDataFromSupabase().then(() => { renderAll(); }).catch(err => { console.error('Supabase load failed:', err); renderAll(); });
 </script>
 </body>
 </html>
