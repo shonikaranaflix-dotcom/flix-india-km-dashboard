@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flix India — KM Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #73D700;
+  --green-dark: #3d7200;
+  --green-dim: rgba(115,215,0,0.12);
+  --green-mid: rgba(115,215,0,0.25);
+  --navy: #0d1117;
+  --card: #161b22;
+  --card2: #1c2230;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #e6edf3;
+  --muted: #7d8590;
+  --muted2: #4a5260;
+  --blue: #388bfd;
+  --blue-dim: rgba(56,139,253,0.15);
+  --amber: #f0b429;
+  --amber-dim: rgba(240,180,41,0.13);
+  --red: #f85149;
+  --red-dim: rgba(248,81,73,0.13);
+  --purple: #a371f7;
+  --purple-dim: rgba(163,113,247,0.13);
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--navy); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; }
+body { min-height: 100vh; }
+
+/* ── Top bar ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,17,23,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 56px;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 30px; height: 30px; background: var(--green); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 13px; color: #000; letter-spacing: -.5px;
+}
+.logo-text { font-size: 14px; font-weight: 500; }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; }
+.badge-live { background: var(--green-dim); color: var(--green); border: 1px solid rgba(115,215,0,0.25); }
+.badge-locked { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(56,139,253,0.25); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.last-update { font-size: 11px; color: var(--muted); }
+
+/* ── Upload banner ── */
+#upload-banner {
+  background: linear-gradient(135deg, rgba(115,215,0,0.06) 0%, rgba(56,139,253,0.04) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.upload-label { font-size: 12px; color: var(--muted); }
+.upload-label strong { color: var(--text); font-weight: 500; }
+.upload-area {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px dashed var(--border2); border-radius: var(--radius-sm);
+  padding: 7px 14px; cursor: pointer; transition: all .2s;
+  background: transparent; color: var(--muted); font-size: 12px; font-family: 'DM Sans', sans-serif;
+}
+.upload-area:hover { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.upload-area svg { flex-shrink: 0; }
+#file-input { display: none; }
+#upload-status { font-size: 11px; color: var(--green); display: none; }
+
+/* ── Layout ── */
+.main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+/* ── KPI strip ── */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.kpi {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  position: relative; overflow: hidden;
+}
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent-color, var(--green));
+}
+.kpi-label { font-size: 10px; font-weight: 500; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.kpi-val { font-size: 26px; font-weight: 300; letter-spacing: -1px; font-family: 'DM Mono', monospace; line-height: 1; }
+.kpi-val span { font-size: 13px; font-weight: 500; margin-left: 2px; }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.kpi-delta { font-size: 11px; font-weight: 500; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; }
+.delta-up { background: var(--green-dim); color: var(--green); }
+.delta-dn { background: var(--red-dim); color: var(--red); }
+.delta-neu { background: var(--blue-dim); color: var(--blue); }
+
+/* ── Grid layouts ── */
+.grid-2-1 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; }
+.grid-1-1 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+}
+.card-title {
+  font-size: 12px; font-weight: 500; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;
+}
+.card-title-left { display: flex; align-items: center; gap: 8px; }
+
+/* ── Charts ── */
+.chart-wrap { position: relative; width: 100%; }
+
+/* ── Legend ── */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.leg { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── Budget bars ── */
+.budget-bars { display: flex; flex-direction: column; gap: 9px; }
+.brow { display: flex; flex-direction: column; gap: 4px; }
+.brow-top { display: flex; justify-content: space-between; font-size: 11px; }
+.brow-month { color: var(--text); font-weight: 500; }
+.brow-pct { font-weight: 600; font-family: 'DM Mono', monospace; font-size: 11px; }
+.track { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* ── New lines editor ── */
+.nl-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+.nl-filter { display: flex; gap: 6px; }
+.filter-btn {
+  font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border2);
+  background: transparent; color: var(--muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .15s;
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.nl-search {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 12px; padding: 5px 10px; width: 180px; font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+.nl-search:focus { border-color: var(--green); }
+
+.nl-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.nl-table thead tr { border-bottom: 1px solid var(--border2); }
+.nl-table th { font-size: 10px; font-weight: 500; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); padding: 6px 10px; text-align: left; }
+.nl-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.035); vertical-align: middle; }
+.nl-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+.nl-table tbody tr:last-child td { border-bottom: none; }
+.code-cell { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+.route-cell { font-weight: 500; color: var(--text); }
+.km-cell { font-family: 'DM Mono', monospace; text-align: right; color: var(--muted); }
+.week-select {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border2); border-radius: 5px;
+  color: var(--text); font-size: 11px; padding: 4px 8px; font-family: 'DM Mono', monospace;
+  cursor: pointer; outline: none; transition: border-color .15s;
+}
+.week-select:focus, .week-select:hover { border-color: var(--green); }
+.status-pill {
+  font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+  display: inline-block; white-space: nowrap;
+}
+.s-live { background: var(--green-dim); color: var(--green); border: 1px solid rgba(115,215,0,.2); }
+.s-soon { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(240,180,41,.2); }
+.s-future { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(56,139,253,.2); }
+
+/* ── H1/H2 summary table ── */
+.summary-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.summary-table th { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--border2); font-weight: 500; text-align: right; }
+.summary-table th:first-child { text-align: left; }
+.summary-table td { padding: 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.summary-table td:not(:first-child) { text-align: right; font-family: 'DM Mono', monospace; font-size: 12px; }
+.summary-table tr:last-child td { border-bottom: none; }
+.row-label { font-weight: 500; }
+.highlight-row td { color: var(--green); }
+
+/* ── Footer note ── */
+.footnote { font-size: 11px; color: var(--muted2); padding: 6px 0 20px; text-align: center; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 14px; }
+
+/* ── Scrollable table wrapper ── */
+.tbl-scroll { overflow-y: auto; max-height: 340px; }
+.tbl-scroll::-webkit-scrollbar { width: 4px; }
+.tbl-scroll::-webkit-scrollbar-track { background: transparent; }
+.tbl-scroll::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+/* ── Section divider ── */
+.section-head { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .7px; color: var(--muted2); padding: 4px 0; }
+
+/* ── Save button ── */
+.save-btn {
+  background: var(--green); color: #000; font-size: 12px; font-weight: 600;
+  padding: 6px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: opacity .15s;
+}
+.save-btn:hover { opacity: .85; }
+.save-note { font-size: 11px; color: var(--muted); }
+
+/* ── Leadership table ── */
+#lv-tbl th {
+  background:#111827; color:#fff; font-weight:500;
+  padding:7px 10px; text-align:center; font-size:10px;
+  border:1px solid #2a3140; white-space:nowrap; letter-spacing:.3px;
+}
+#lv-tbl th:first-child { text-align:left; width:130px; }
+#lv-tbl td {
+  padding:6px 10px; border:1px solid var(--border);
+  text-align:right; font-size:12px; white-space:nowrap;
+  font-variant-numeric:tabular-nums; color:var(--text);
+}
+#lv-tbl td:first-child {
+  text-align:left; font-weight:500; font-size:11px;
+  background:rgba(255,255,255,0.03); color:var(--muted);
+}
+#lv-tbl tbody tr:hover td { background:rgba(255,255,255,0.025); }
+.lv-divider td { border-top:2px solid var(--border2) !important; }
+.lv-vs td { font-weight:600; }
+.lv-pct-g { background:rgba(115,215,0,.18) !important; color:var(--green) !important; font-weight:700; text-align:center !important; }
+.lv-pct-a { background:rgba(240,180,41,.18) !important; color:var(--amber) !important; font-weight:700; text-align:center !important; }
+.lv-pct-r { background:rgba(248,81,73,.18) !important; color:var(--red)   !important; font-weight:700; text-align:center !important; }
+.lv-pct-d { color:var(--muted2) !important; text-align:center !important; }
+.lv-total  { background:rgba(255,255,255,0.04) !important; font-weight:600 !important; }
+.lv-total-hdr { background:#0d1117 !important; border-left:1px solid #444 !important; }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-mark">FX</div>
+    <div>
+      <div class="logo-text">Flix India — KM Dashboard</div>
+      <div class="logo-sub">Business Team · Program Management · 2026</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="last-update" id="last-update-label">Last updated: —</span>
+    <span class="badge badge-live"><span class="dot"></span>W23 Live</span>
+    <span class="badge badge-locked">Jan–May Locked</span>
+  </div>
+</header>
+
+<!-- UPLOAD BANNER -->
+<div id="upload-banner">
+  <div class="upload-label">
+    <strong>Weekly update:</strong> Upload the latest Excel file every Monday after W-1 locks. The dashboard recalculates instantly.
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <label class="upload-area" for="file-input">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Excel (.xlsx)
+    </label>
+    <input type="file" id="file-input" accept=".xlsx,.xls">
+    <span id="upload-status">✓ File loaded — dashboard updated</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- KPI STRIP -->
+  <div class="kpi-row">
+    <div class="kpi" style="--accent-color:var(--green)">
+      <div class="kpi-label">Full year forecast</div>
+      <div class="kpi-val" id="kpi-fy">64.1<span>M KM</span></div>
+      <div class="kpi-sub">Net · incl. new lines</div>
+      <div class="kpi-delta delta-up" id="kpi-fy-delta">▲ 10.5% vs budget</div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--blue)">
+      <div class="kpi-label">Jan–May actuals</div>
+      <div class="kpi-val" id="kpi-act">22.2<span>M KM</span></div>
+      <div class="kpi-sub">Locked & confirmed</div>
+      <div class="kpi-delta delta-dn" id="kpi-act-delta">▼ 4.7% vs budget</div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--amber)">
+      <div class="kpi-label">Annual budget</div>
+      <div class="kpi-val">58.0<span>M KM</span></div>
+      <div class="kpi-sub">Full year target</div>
+      <div class="kpi-delta delta-neu">Target</div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--purple)">
+      <div class="kpi-label">New lines KM</div>
+      <div class="kpi-val" id="kpi-nl">9.7<span>M KM</span></div>
+      <div class="kpi-sub">Contribution (net)</div>
+      <div class="kpi-delta delta-up" id="kpi-nl-count">▲ 41 lines active</div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--red)">
+      <div class="kpi-label">Cancellation applied</div>
+      <div class="kpi-val">8<span>%</span></div>
+      <div class="kpi-sub">Jun–Dec forecast</div>
+      <div class="kpi-delta delta-neu">Fixed assumption</div>
+    </div>
+  </div>
+
+  <!-- LEADERSHIP TABLE -->
+  <div class="card" id="leadership-section">
+    <div class="card-title" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">Leadership view — KM performance 2026</div>
+      <span style="font-size:10px;padding:3px 9px;border-radius:999px;font-weight:500;background:var(--green-dim);color:var(--green);border:1px solid rgba(115,215,0,.25)">Live · W23</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="lv-tbl" style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px">
+        <thead><tr id="lv-head"></tr></thead>
+        <tbody id="lv-body"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap">
+      <span>Actuals: Jan–May locked</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(115,215,0,.25);border:1px solid var(--green);display:inline-block"></span> &ge;100%</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(240,180,41,.25);border:1px solid var(--amber);display:inline-block"></span> 80&ndash;99%</span>
+      <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:rgba(248,81,73,.25);border:1px solid var(--red);display:inline-block"></span> &lt;80%</span>
+      <span>8% cancellation applied Jun&ndash;Dec on gross KM</span>
+    </div>
+  </div>
+
+  <!-- ROW 1: Monthly chart + Budget attainment -->
+  <div class="grid-2-1">
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-left">Monthly KM performance</div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg" style="background:#388bfd"></div>Actuals (Jan–May)</div>
+        <div class="legend-item"><div class="leg" style="background:#73D700"></div>Forecast net (Jun–Dec)</div>
+        <div class="legend-item"><div class="leg" style="background:rgba(255,255,255,.18)"></div>Budget</div>
+      </div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-monthly" role="img" aria-label="Monthly KM performance chart comparing actuals Jan-May and forecast Jun-Dec against budget across all 12 months of 2026">Monthly KM actuals versus forecast versus budget for all 12 months of 2026.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Budget attainment</div>
+      <div class="budget-bars" id="budget-bars"></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Weekly stacked + New lines editor -->
+  <div class="grid-2-1">
+    <div class="card">
+      <div class="card-title">Weekly KM — W23 to W53</div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg" style="background:#388bfd"></div>Existing lines</div>
+        <div class="legend-item"><div class="leg" style="background:#a371f7"></div>New lines</div>
+      </div>
+      <div class="chart-wrap" style="height:210px"><canvas id="c-weekly" role="img" aria-label="Stacked bar chart of weekly KM from W23 to W53 showing existing lines baseline and new lines added on top from go-live dates">Weekly KM breakdown between existing and new lines W23 through W53 2026.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-left">New lines — go-live editor</div>
+        <button class="save-btn" onclick="recalcFromNewLines()">Recalculate ↻</button>
+      </div>
+      <div class="nl-toolbar">
+        <div class="nl-filter" id="nl-filter">
+          <button class="filter-btn active" data-f="all">All</button>
+          <button class="filter-btn" data-f="W23">W23</button>
+          <button class="filter-btn" data-f="W24">W24</button>
+          <button class="filter-btn" data-f="W26">W26</button>
+          <button class="filter-btn" data-f="W36">W36</button>
+        </div>
+        <input class="nl-search" placeholder="Search route…" id="nl-search">
+      </div>
+      <div class="tbl-scroll">
+        <table class="nl-table">
+          <thead><tr>
+            <th>Code</th><th>Route</th><th>Go-live</th><th style="text-align:right">Wkly KM</th><th>Status</th>
+          </tr></thead>
+          <tbody id="nl-tbody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px"><span class="save-note" id="nl-save-note">Edit go-live week above, then click Recalculate.</span></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Cumulative + Mix donut + Summary table -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Cumulative KM 2026</div>
+      <div class="legend">
+        <div class="legend-item"><div class="leg" style="background:#73D700"></div>Forecast</div>
+        <div class="legend-item"><div class="leg" style="background:rgba(255,255,255,.2);border:1px dashed rgba(255,255,255,.3)"></div>Budget</div>
+      </div>
+      <div class="chart-wrap" style="height:190px"><canvas id="c-cumul" role="img" aria-label="Line chart showing cumulative KM forecast versus budget target through all 12 months of 2026">Cumulative KM forecast versus annual budget target for 2026.</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">H2 KM mix</div>
+      <div class="chart-wrap" style="height:155px"><canvas id="c-donut" role="img" aria-label="Donut chart showing H2 KM split between existing lines and new lines, with new lines representing approximately 20 percent of H2">H2 2026 KM contribution split between existing lines and new lines.</canvas></div>
+      <div class="legend" style="margin-top:10px;justify-content:center;margin-bottom:0">
+        <div class="legend-item"><div class="leg" style="background:#388bfd"></div><span id="leg-existing">Existing</span></div>
+        <div class="legend-item"><div class="leg" style="background:#a371f7"></div><span id="leg-new">New lines</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">H1 / H2 summary</div>
+      <table class="summary-table">
+        <thead><tr><th>Metric</th><th>H1</th><th>H2</th><th>FY</th></tr></thead>
+        <tbody id="summary-tbody"></tbody>
+      </table>
+      <div style="margin-top:14px;font-size:11px;color:var(--muted);line-height:1.8">
+        <div>Cancellation: 8% on Jun–Dec gross</div>
+        <div>Actuals lock: Monday of following week</div>
+        <div>W23 = current live week</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="footnote">
+  Flix India Business Team · KM Dashboard 2026 · Data updates every Monday · Internal use only
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEKS  = ['W23','W24','W25','W26','W27','W28','W29','W30','W31','W32','W33','W34',
+                'W35','W36','W37','W38','W39','W40','W41','W42','W43','W44','W45','W46',
+                'W47','W48','W49','W50','W51','W52','W53'];
+
+const WEEK_MONTH = {
+  W23:'Jun',W24:'Jun',W25:'Jun',W26:'Jun',
+  W27:'Jul',W28:'Jul',W29:'Jul',W30:'Jul',W31:'Jul',
+  W32:'Aug',W33:'Aug',W34:'Aug',W35:'Aug',
+  W36:'Sep',W37:'Sep',W38:'Sep',W39:'Sep',
+  W40:'Oct',W41:'Oct',W42:'Oct',W43:'Oct',W44:'Oct',
+  W45:'Nov',W46:'Nov',W47:'Nov',W48:'Nov',
+  W49:'Dec',W50:'Dec',W51:'Dec',W52:'Dec',W53:'Dec'
+};
+
+const BUDGET = {Jan:5504558,Feb:4373813,Mar:4656732,Apr:4904873,May:5333735,
+                Jun:5016151,Jul:4251180,Aug:4561804,Sep:4551377,Oct:4961577,Nov:4751358,Dec:5132842};
+const ACTUALS = {Jan:4551111,Feb:3897253,Mar:4203972,Apr:4081437,May:5420402};
+const CANCEL = 0.08;
+
+// Weekly KM from existing lines (W23–W53) — updated via Excel upload
+let weeklyExisting = {
+  W23:1226438,W24:1240765,W25:1237682,W26:1240906,W27:1245635,W28:1242542,
+  W29:1242624,W30:1241296,W31:1240149,W32:1240149,W33:1239246,W34:1239246,
+  W35:1239246,W36:1239246,W37:1239246,W38:1239246,W39:1239246,W40:1239246,
+  W41:1239246,W42:1239246,W43:1239246,W44:1239246,W45:1239246,W46:1239246,
+  W47:1239246,W48:1239246,W49:1239246,W50:1239246,W51:1239246,W52:1239246,W53:710616
+};
+
+// New lines — editable go-live weeks
+let newLines = [
+  {code:'IN0210B',   route:'Delhi – Manali',         goLive:'W23', weeklyKm:6228},
+  {code:'IN2310C',   route:'Mumbai – Ujjain',         goLive:'W23', weeklyKm:8304},
+  {code:'IN4308',    route:'Bangalore – Chennai (1)',  goLive:'W23', weeklyKm:5543},
+  {code:'IN4307',    route:'Bangalore – Chennai (2)',  goLive:'W23', weeklyKm:5395},
+  {code:'IN4306',    route:'Bangalore – Chennai (3)',  goLive:'W23', weeklyKm:5723},
+  {code:'BLR-KOCHI-1',route:'Bangalore – Kochi (1)',  goLive:'W23', weeklyKm:6758},
+  {code:'BLR-KOCHI-3',route:'Bangalore – Kochi (3)',  goLive:'W23', weeklyKm:6758},
+  {code:'IN0310H',   route:'Delhi – Dehradun (1)',     goLive:'W24', weeklyKm:6888},
+  {code:'IN0310G',   route:'Delhi – Dehradun (2)',     goLive:'W24', weeklyKm:6888},
+  {code:'IN0210B-2', route:'Delhi – Manali (2)',       goLive:'W24', weeklyKm:6228},
+  {code:'IN2820A',   route:'Mumbai – Goa',             goLive:'W24', weeklyKm:7870},
+  {code:'IN4302',    route:'Bangalore – Chennai (4)',  goLive:'W24', weeklyKm:5977},
+  {code:'BLR-KOCHI-4',route:'Bangalore – Kochi (4)',  goLive:'W24', weeklyKm:6758},
+  {code:'HYD-VIZ-1', route:'Hyderabad – Vizag',       goLive:'W24', weeklyKm:7534},
+  {code:'BLR-HYD-1', route:'Bangalore – Hyderabad',   goLive:'W24', weeklyKm:7954},
+  {code:'IN0520B',   route:'Delhi – Indore (1)',       goLive:'W26', weeklyKm:7831},
+  {code:'IN0520C',   route:'Delhi – Indore (2)',       goLive:'W26', weeklyKm:7831},
+  {code:'BLR-KOCHI-2',route:'Bangalore – Kochi (2)',  goLive:'W26', weeklyKm:6758},
+  {code:'IN0310L-1', route:'Delhi – Dehradun (L1)',    goLive:'W36', weeklyKm:6888},
+  {code:'IN0310L-2', route:'Delhi – Dehradun (L2)',    goLive:'W36', weeklyKm:6888},
+  {code:'IN0310L-3', route:'Delhi – Dehradun (L3)',    goLive:'W36', weeklyKm:6888},
+  {code:'IN0310L-4', route:'Delhi – Dehradun (L4)',    goLive:'W36', weeklyKm:6888},
+  {code:'IN0310L-5', route:'Delhi – Dehradun (L5)',    goLive:'W36', weeklyKm:6888},
+  {code:'IN0121-1',  route:'Delhi – Katra (1)',        goLive:'W36', weeklyKm:7770},
+  {code:'IN0121-2',  route:'Delhi – Katra (2)',        goLive:'W36', weeklyKm:7770},
+  {code:'IN0121-3',  route:'Delhi – Katra (3)',        goLive:'W36', weeklyKm:7770},
+  {code:'IN0121-4',  route:'Delhi – Katra (4)',        goLive:'W36', weeklyKm:7770},
+  {code:'IN0121-5',  route:'Delhi – Katra (5)',        goLive:'W36', weeklyKm:7770},
+  {code:'IN2310C-2', route:'Mumbai – Ujjain (2)',      goLive:'W36', weeklyKm:8343},
+  {code:'IN2310C-3', route:'Mumbai – Ujjain (3)',      goLive:'W36', weeklyKm:8343},
+  {code:'IN2514-1',  route:'Hyderabad – Pune (1)',     goLive:'W36', weeklyKm:8965},
+  {code:'IN2514-2',  route:'Hyderabad – Pune (2)',     goLive:'W36', weeklyKm:8965},
+  {code:'IN4415-1',  route:'Bangalore – Kochi (5)',    goLive:'W36', weeklyKm:7239},
+  {code:'IN4415-2',  route:'Bangalore – Kochi (6)',    goLive:'W36', weeklyKm:7239},
+  {code:'IN4710A-1', route:'Bangalore – Pune (1)',     goLive:'W36', weeklyKm:6720},
+  {code:'IN4710A-2', route:'Bangalore – Pune (2)',     goLive:'W36', weeklyKm:6720},
+  {code:'IN5218',    route:'Chennai – Hyderabad',      goLive:'W36', weeklyKm:9068},
+  {code:'IN5341-1',  route:'Hyderabad – Tirupati (1)', goLive:'W36', weeklyKm:6896},
+  {code:'IN5341-2',  route:'Hyderabad – Tirupati (2)', goLive:'W36', weeklyKm:6896},
+  {code:'IN5341-3',  route:'Hyderabad – Tirupati (3)', goLive:'W36', weeklyKm:6896},
+  {code:'IN5341-4',  route:'Hyderabad – Tirupati (4)', goLive:'W36', weeklyKm:6896},
+];
+
+// ── COMPUTE ──────────────────────────────────────────────────────────────────
+function weekNum(w) { return parseInt(w.replace('W','')); }
+
+function computeNewLinesWeekly() {
+  const out = {};
+  WEEKS.forEach(w => {
+    out[w] = newLines.reduce((s, nl) => {
+      return s + (weekNum(w) >= weekNum(nl.goLive) ? nl.weeklyKm : 0);
+    }, 0);
+  });
+  return out;
+}
+
+function computeMonthlyForecast(wklyExist, wklyNew) {
+  const monthly = {};
+  MONTHS.forEach(m => {
+    if (ACTUALS[m] !== undefined) { monthly[m] = ACTUALS[m]; return; }
+    const ws = WEEKS.filter(w => WEEK_MONTH[w] === m);
+    const gross = ws.reduce((s,w) => s + (wklyExist[w]||0) + (wklyNew[w]||0), 0);
+    monthly[m] = Math.round(gross * (1 - CANCEL));
+  });
+  return monthly;
+}
+
+function fmt(n, dec=1) {
+  if (n >= 1e6) return (n/1e6).toFixed(dec) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return Math.round(n).toLocaleString('en-IN');
+}
+function fmtM(n) { return (n/1e6).toFixed(2) + 'M'; }
+function pct(a,b) { return b ? Math.round(a/b*100) : 0; }
+
+// ── CHARTS ───────────────────────────────────────────────────────────────────
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+const gridClr = 'rgba(255,255,255,0.05)';
+const tickClr = '#4a5260';
+Chart.defaults.color = '#4a5260';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+function buildMonthlyChart(monthly) {
+  destroyChart('monthly');
+  const actArr  = MONTHS.map(m => ACTUALS[m] || null);
+  const fcstArr = MONTHS.map(m => ACTUALS[m] ? null : (monthly[m] || null));
+  const budArr  = MONTHS.map(m => BUDGET[m]);
+  charts.monthly = new Chart(document.getElementById('c-monthly'), {
+    type:'bar',
+    data:{
+      labels: MONTHS,
+      datasets:[
+        {label:'Budget',     data:budArr,  backgroundColor:'rgba(255,255,255,0.08)', borderColor:'rgba(255,255,255,0.15)', borderWidth:1, stack:'bud'},
+        {label:'Actuals',    data:actArr,  backgroundColor:'#388bfd', stack:'km'},
+        {label:'Forecast net',data:fcstArr,backgroundColor:'#73D700', stack:'km'},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtM(ctx.raw)}`}}},
+      scales:{
+        x:{grid:{display:false}, ticks:{color:tickClr}},
+        y:{grid:{color:gridClr}, ticks:{color:tickClr, callback:v=>fmt(v)}, border:{display:false}}
+      }
+    }
+  });
+}
+
+function buildWeeklyChart(wklyNew) {
+  destroyChart('weekly');
+  charts.weekly = new Chart(document.getElementById('c-weekly'), {
+    type:'bar',
+    data:{
+      labels: WEEKS,
+      datasets:[
+        {label:'Existing', data:WEEKS.map(w=>weeklyExisting[w]||0), backgroundColor:'#388bfd', stack:'s'},
+        {label:'New lines',data:WEEKS.map(w=>wklyNew[w]||0),        backgroundColor:'#a371f7', stack:'s'},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${(ctx.raw/1000).toFixed(0)}K KM`}}},
+      scales:{
+        x:{grid:{display:false}, ticks:{color:tickClr, autoSkip:true, maxTicksLimit:10}},
+        y:{grid:{color:gridClr}, ticks:{color:tickClr, callback:v=>fmt(v)}, border:{display:false}}
+      }
+    }
+  });
+}
+
+function buildCumulChart(monthly) {
+  destroyChart('cumul');
+  let cf=0,cb=0;
+  const fc=[],bc=[];
+  MONTHS.forEach(m=>{cf+=monthly[m]||0; cb+=BUDGET[m]; fc.push(Math.round(cf)); bc.push(Math.round(cb));});
+  charts.cumul = new Chart(document.getElementById('c-cumul'), {
+    type:'line',
+    data:{
+      labels:MONTHS,
+      datasets:[
+        {label:'Forecast',data:fc, borderColor:'#73D700', backgroundColor:'rgba(115,215,0,0.07)', fill:true, tension:.35, borderWidth:2, pointRadius:3, pointBackgroundColor:'#73D700'},
+        {label:'Budget',  data:bc, borderColor:'rgba(255,255,255,0.25)', borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtM(ctx.raw)}`}}},
+      scales:{
+        x:{grid:{display:false}, ticks:{color:tickClr}},
+        y:{grid:{color:gridClr}, ticks:{color:tickClr, callback:v=>fmt(v)}, border:{display:false}}
+      }
+    }
+  });
+}
+
+function buildDonutChart(wklyNew) {
+  destroyChart('donut');
+  const h2Weeks = WEEKS.filter(w=>['Jul','Aug','Sep','Oct','Nov','Dec'].includes(WEEK_MONTH[w]));
+  const h2Exist = h2Weeks.reduce((s,w)=>s+(weeklyExisting[w]||0),0) * (1-CANCEL);
+  const h2New   = h2Weeks.reduce((s,w)=>s+(wklyNew[w]||0),0) * (1-CANCEL);
+  const total = h2Exist+h2New;
+  document.getElementById('leg-existing').textContent = `Existing (${pct(h2Exist,total)}%)`;
+  document.getElementById('leg-new').textContent = `New lines (${pct(h2New,total)}%)`;
+  charts.donut = new Chart(document.getElementById('c-donut'), {
+    type:'doughnut',
+    data:{
+      labels:['Existing','New lines'],
+      datasets:[{data:[Math.round(h2Exist),Math.round(h2New)], backgroundColor:['#388bfd','#a371f7'], borderWidth:0, hoverOffset:4}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'70%',
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${fmtM(ctx.raw)} (${pct(ctx.raw,total)}%)`}}}
+    }
+  });
+}
+
+// ── UI BUILDERS ───────────────────────────────────────────────────────────────
+function buildBudgetBars(monthly) {
+  const container = document.getElementById('budget-bars');
+  container.innerHTML = '';
+  MONTHS.forEach(m => {
+    const val = monthly[m] || 0;
+    const bud = BUDGET[m];
+    const p   = Math.min(Math.round(val/bud*100), 120);
+    const isAct = !!ACTUALS[m];
+    const color = p>=95?'#73D700': p>=80?'#f0b429':'#f85149';
+    const label = isAct ? `<span style="font-size:10px;color:var(--blue)">actual</span>` : `<span style="font-size:10px;color:var(--muted)">forecast</span>`;
+    container.innerHTML += `
+      <div class="brow">
+        <div class="brow-top">
+          <span class="brow-month">${m} ${label}</span>
+          <span class="brow-pct" style="color:${color}">${p}%</span>
+        </div>
+        <div class="track"><div class="fill" style="width:${p}%;background:${color}"></div></div>
+      </div>`;
+  });
+}
+
+function buildSummaryTable(monthly) {
+  const h1 = MONTHS.slice(0,6);
+  const h2 = MONTHS.slice(6);
+  const h1Fore = h1.reduce((s,m)=>s+(monthly[m]||0),0);
+  const h2Fore = h2.reduce((s,m)=>s+(monthly[m]||0),0);
+  const h1Bud  = h1.reduce((s,m)=>s+(BUDGET[m]||0),0);
+  const h2Bud  = h2.reduce((s,m)=>s+(BUDGET[m]||0),0);
+  const fyFore = h1Fore+h2Fore;
+  const fyBud  = h1Bud+h2Bud;
+  const rows = [
+    ['Actuals / Forecast', fmtM(h1Fore), fmtM(h2Fore), fmtM(fyFore), false],
+    ['Budget',             fmtM(h1Bud),  fmtM(h2Bud),  fmtM(fyBud),  false],
+    ['vs Budget',          pct(h1Fore,h1Bud)+'%', pct(h2Fore,h2Bud)+'%', pct(fyFore,fyBud)+'%', true],
+  ];
+  const tbody = document.getElementById('summary-tbody');
+  tbody.innerHTML = rows.map(([label,...vals]) =>
+    `<tr class="${vals[3]?'highlight-row':''}"><td class="row-label">${label}</td>${vals.slice(0,3).map(v=>`<td>${v}</td>`).join('')}</tr>`
+  ).join('');
+}
+
+function buildKPIs(monthly, wklyNew) {
+  const fyFore = MONTHS.reduce((s,m)=>s+(monthly[m]||0),0);
+  const fyBud  = Object.values(BUDGET).reduce((a,b)=>a+b,0);
+  const actSum = Object.values(ACTUALS).reduce((a,b)=>a+b,0);
+  const actBud = ['Jan','Feb','Mar','Apr','May'].reduce((s,m)=>s+BUDGET[m],0);
+  const nlKm   = WEEKS.reduce((s,w)=>s+(wklyNew[w]||0),0)*(1-CANCEL);
+  const nlCount = [...new Set(newLines.map(n=>n.code))].length;
+  const fyDelta = pct(fyFore,fyBud)-100;
+  const actDelta= pct(actSum,actBud)-100;
+
+  document.getElementById('kpi-fy').innerHTML = `${(fyFore/1e6).toFixed(1)}<span>M KM</span>`;
+  document.getElementById('kpi-fy-delta').className = `kpi-delta ${fyDelta>=0?'delta-up':'delta-dn'}`;
+  document.getElementById('kpi-fy-delta').textContent = `${fyDelta>=0?'▲':'▼'} ${Math.abs(fyDelta).toFixed(1)}% vs budget`;
+
+  document.getElementById('kpi-act').innerHTML = `${(actSum/1e6).toFixed(1)}<span>M KM</span>`;
+  document.getElementById('kpi-act-delta').className = `kpi-delta ${actDelta>=0?'delta-up':'delta-dn'}`;
+  document.getElementById('kpi-act-delta').textContent = `${actDelta>=0?'▲':'▼'} ${Math.abs(actDelta).toFixed(1)}% vs budget`;
+
+  document.getElementById('kpi-nl').innerHTML = `${(nlKm/1e6).toFixed(1)}<span>M KM</span>`;
+  document.getElementById('kpi-nl-count').textContent = `▲ ${nlCount} lines active`;
+}
+
+// ── NEW LINES TABLE ───────────────────────────────────────────────────────────
+let nlFilter = 'all';
+let nlSearch  = '';
+
+function statusPill(week) {
+  const n = weekNum(week);
+  if (n <= 23) return `<span class="status-pill s-live">Live</span>`;
+  if (n <= 26) return `<span class="status-pill s-soon">Soon</span>`;
+  return `<span class="status-pill s-future">Forecast</span>`;
+}
+
+function renderNLTable() {
+  const filtered = newLines.filter(nl => {
+    const matchFilter = nlFilter === 'all' || nl.goLive === nlFilter;
+    const matchSearch = !nlSearch || nl.route.toLowerCase().includes(nlSearch.toLowerCase()) || nl.code.toLowerCase().includes(nlSearch.toLowerCase());
+    return matchFilter && matchSearch;
+  });
+  const tbody = document.getElementById('nl-tbody');
+  tbody.innerHTML = filtered.map((nl, i) => {
+    const idx = newLines.indexOf(nl);
+    const opts = WEEKS.map(w => `<option value="${w}" ${nl.goLive===w?'selected':''}>${w}</option>`).join('');
+    return `<tr>
+      <td class="code-cell">${nl.code}</td>
+      <td class="route-cell">${nl.route}</td>
+      <td><select class="week-select" data-idx="${idx}" onchange="updateGoLive(this)">${opts}</select></td>
+      <td class="km-cell">${nl.weeklyKm.toLocaleString('en-IN')}</td>
+      <td>${statusPill(nl.goLive)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateGoLive(sel) {
+  const idx = parseInt(sel.dataset.idx);
+  newLines[idx].goLive = sel.value;
+  document.getElementById('nl-save-note').textContent = 'Go-live changed — click Recalculate to update charts.';
+  document.getElementById('nl-save-note').style.color = 'var(--amber)';
+  renderNLTable();
+}
+
+function recalcFromNewLines() {
+  renderAll();
+  document.getElementById('nl-save-note').textContent = '✓ Dashboard updated from new go-live weeks.';
+  document.getElementById('nl-save-note').style.color = 'var(--green)';
+}
+
+document.getElementById('nl-filter').addEventListener('click', e => {
+  const btn = e.target.closest('[data-f]');
+  if (!btn) return;
+  nlFilter = btn.dataset.f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === nlFilter));
+  renderNLTable();
+});
+
+document.getElementById('nl-search').addEventListener('input', e => {
+  nlSearch = e.target.value;
+  renderNLTable();
+});
+
+// ── EXCEL UPLOAD ─────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const wb = XLSX.read(evt.target.result, {type:'array'});
+
+      // Try to read "Existing Lines" sheet — look for weekly totals row
+      const sheetName = wb.SheetNames.find(s => s.toLowerCase().includes('existing')) || wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+      // Find the TOTAL row (last non-empty row with numeric weekly data)
+      let totalRow = null;
+      for (let i = data.length-1; i >= 0; i--) {
+        const row = data[i];
+        if (row && (String(row[0]||'').toUpperCase().includes('TOTAL') ||
+                    String(row[0]||'').toUpperCase().includes('EXISTING'))) {
+          totalRow = row; break;
+        }
+      }
+
+      // Find the week header row to map columns to week labels
+      let headerRow = null;
+      for (let i = 0; i < Math.min(data.length, 5); i++) {
+        const row = data[i];
+        if (row && row.some(c => String(c||'').match(/^W\d{2}/))) {
+          headerRow = row; break;
+        }
+      }
+
+      if (headerRow && totalRow) {
+        headerRow.forEach((cell, ci) => {
+          const wk = String(cell||'').split(',')[0].trim();
+          if (wk.match(/^W\d{2}$/) && totalRow[ci] != null) {
+            const val = parseFloat(totalRow[ci]);
+            if (!isNaN(val) && val > 0) weeklyExisting[wk] = val;
+          }
+        });
+        document.getElementById('upload-status').style.display = 'block';
+        document.getElementById('last-update-label').textContent =
+          'Last updated: ' + new Date().toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+        renderAll();
+      } else {
+        alert('Could not find weekly totals in this file. Make sure you are uploading the Flix India KM dashboard Excel.');
+      }
+    } catch(err) {
+      alert('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+
+// ── LEADERSHIP TABLE ──────────────────────────────────────────────────────────
+function buildLeadershipTable(monthly) {
+  const MONTHS_LV = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ACT_MONTHS = new Set(['Jan','Feb','Mar','Apr','May']);
+
+  // Build on-sale monthly from existing data (actuals for Jan-May, on-sale gross for Jun-Dec)
+  const onSaleGross = MONTHS_LV.map(m => {
+    if (ACTUALS[m] !== undefined) return ACTUALS[m];
+    const ws = WEEKS.filter(w => WEEK_MONTH[w] === m);
+    return Math.round(ws.reduce((s,w) => s + (weeklyExisting[w]||0) + (computeNewLinesWeekly()[w]||0), 0));
+  });
+  const forecastNet = MONTHS_LV.map(m => monthly[m] || 0);
+  const budgetArr   = MONTHS_LV.map(m => BUDGET[m] || 0);
+
+  const totOS   = onSaleGross.reduce((a,b)=>a+b,0);
+  const totBud  = budgetArr.reduce((a,b)=>a+b,0);
+  const totFore = forecastNet.reduce((a,b)=>a+b,0);
+
+  function fmtLV(n) { return Math.round(n).toLocaleString('en-IN'); }
+  function pctVal(a,b) { return b ? Math.round(a/b*100) : null; }
+  function pctClass(p) { if(p===null) return 'lv-pct-d'; if(p>=100) return 'lv-pct-g'; if(p>=80) return 'lv-pct-a'; return 'lv-pct-r'; }
+  function pctTd(p, isDash) {
+    if (isDash) return `<td class="lv-pct-d">-</td>`;
+    if (p===null) return `<td class="lv-pct-d">-</td>`;
+    return `<td class="${pctClass(p)}">${p}%</td>`;
+  }
+
+  // Header
+  const head = document.getElementById('lv-head');
+  head.innerHTML = `<th>Month</th>` +
+    MONTHS_LV.map(m => `<th>${m}</th>`).join('') +
+    `<th class="lv-total-hdr">Total</th>`;
+
+  // Rows
+  const tbody = document.getElementById('lv-body');
+  const rows = [];
+
+  // Row 1: KM on Sale
+  rows.push(`<tr><td>KM on Sale</td>` +
+    onSaleGross.map(v=>`<td>${fmtLV(v)}</td>`).join('') +
+    `<td class="lv-total">${fmtLV(totOS)}</td></tr>`);
+
+  // Row 2: KM Budget
+  rows.push(`<tr><td>KM Budget</td>` +
+    budgetArr.map(v=>`<td>${fmtLV(v)}</td>`).join('') +
+    `<td class="lv-total">${fmtLV(totBud)}</td></tr>`);
+
+  // Row 3: vs Budget %
+  const vsBudCells = MONTHS_LV.map((m,i) => {
+    const isDash = ACT_MONTHS.has(m);
+    return pctTd(isDash ? null : pctVal(onSaleGross[i], budgetArr[i]), isDash);
+  }).join('');
+  const totVsBud = pctVal(totOS, totBud);
+  rows.push(`<tr class="lv-vs"><td>vs Budget</td>${vsBudCells}<td class="${pctClass(totVsBud)+' lv-total'}">${totVsBud!==null?totVsBud+'%':'-'}</td></tr>`);
+
+  // Row 4: Forecast (with top divider)
+  rows.push(`<tr class="lv-divider"><td>Forecast</td>` +
+    forecastNet.map(v=>`<td>${fmtLV(v)}</td>`).join('') +
+    `<td class="lv-total">${fmtLV(totFore)}</td></tr>`);
+
+  // Row 5: vs Forecast %
+  const vsFcstCells = MONTHS_LV.map((m,i) => {
+    const isDash = ACT_MONTHS.has(m);
+    return pctTd(isDash ? null : pctVal(onSaleGross[i], forecastNet[i]), isDash);
+  }).join('');
+  const totVsFore = pctVal(totOS, totFore);
+  rows.push(`<tr class="lv-vs"><td>vs Forecast</td>${vsFcstCells}<td class="${pctClass(totVsFore)+' lv-total'}">${totVsFore!==null?totVsFore+'%':'-'}</td></tr>`);
+
+  tbody.innerHTML = rows.join('');
+}
+
+function renderAll() {
+  const wklyNew = computeNewLinesWeekly();
+  const monthly = computeMonthlyForecast(weeklyExisting, wklyNew);
+  buildKPIs(monthly, wklyNew);
+  buildMonthlyChart(monthly);
+  buildWeeklyChart(wklyNew);
+  buildCumulChart(monthly);
+  buildDonutChart(wklyNew);
+  buildBudgetBars(monthly);
+  buildSummaryTable(monthly);
+  buildLeadershipTable(monthly);
+  renderNLTable();
+}
+
+renderAll();
+</script>
+</body>
+</html>
