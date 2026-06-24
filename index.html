@@ -180,6 +180,24 @@ input[type=file]{display:none}
     </div>
   </div>
 
+    <!-- REGION SUMMARY TABLE -->
+  <div class="card">
+    <div class="ct"><span>Expansion Summary — by Region &amp; BDM</span></div>
+    <div style="overflow-x:auto">
+      <table id="reg-tbl" style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr>
+          <th style="text-align:left;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Region</th>
+          <th style="text-align:left;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">BDM</th>
+          <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Total Target</th>
+          <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Signed ✅</th>
+          <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Pipeline 🔍</th>
+          <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Done %</th>
+        </tr></thead>
+        <tbody id="reg-bd"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="g21">
     <div class="card">
       <div class="ct">Monthly KM — all sources vs budget</div>
@@ -447,6 +465,56 @@ function buildC5(sm,pm){
   document.getElementById("dl").innerHTML=labels.map((l,i)=>`<div class="li"><div class="ld" style="background:${colors[i]}"></div>${l} ${pct(vals[i],total)}%</div>`).join("");
 }
 
+function buildRegionTable(){
+  const regions = [
+    {label:'North', bdm:'Aakash', color:'#388bfd'},
+    {label:'West',  bdm:'Aakash', color:'#a371f7'},
+    {label:'South', bdm:'Syed',   color:'#73D700'},
+  ];
+  const totals = {all:{total:0,signed:0,pipeline:0}};
+  regions.forEach(r=>totals[r.label]={total:0,signed:0,pipeline:0});
+  EXP.forEach(r=>{
+    const reg=r.region||'';
+    if(totals[reg]){
+      totals[reg].total++;
+      if(r.signed) totals[reg].signed++; else totals[reg].pipeline++;
+    }
+    totals.all.total++;
+    if(r.signed) totals.all.signed++; else totals.all.pipeline++;
+  });
+
+  const rows = regions.map(r=>{
+    const t=totals[r.label];
+    const p=t.total>0?Math.round(t.signed/t.total*100):0;
+    const cl=p===100?'#73D700':p>=50?'#f0b429':'#f85149';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <td style="padding:7px 10px;border:1px solid rgba(255,255,255,.07)">
+        <span style="font-size:9px;font-weight:600;padding:2px 8px;border-radius:999px;background:${r.color}22;color:${r.color};border:1px solid ${r.color}44">${r.label}</span>
+      </td>
+      <td style="padding:7px 10px;font-size:10px;color:var(--mt);border:1px solid rgba(255,255,255,.07)">${r.bdm}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:600;font-family:'DM Mono',monospace;border:1px solid rgba(255,255,255,.07)">${t.total}</td>
+      <td style="padding:7px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07)">${t.signed}</td>
+      <td style="padding:7px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07)">${t.pipeline||'-'}</td>
+      <td style="padding:7px 10px;text-align:center;font-weight:700;color:${cl};border:1px solid rgba(255,255,255,.07)">${p}%</td>
+    </tr>`;
+  });
+
+  // Total row
+  const t=totals.all;
+  const p=t.total>0?Math.round(t.signed/t.total*100):0;
+  const cl=p===100?'#73D700':p>=50?'#f0b429':'#f85149';
+  rows.push(`<tr style="background:rgba(255,255,255,.03);font-weight:700">
+    <td style="padding:7px 10px;border:1px solid rgba(255,255,255,.07);color:var(--tx)">Total</td>
+    <td style="padding:7px 10px;border:1px solid rgba(255,255,255,.07);font-size:10px;color:var(--mt)">All</td>
+    <td style="padding:7px 10px;text-align:center;font-family:'DM Mono',monospace;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.15)">${t.total}</td>
+    <td style="padding:7px 10px;text-align:center;color:var(--g);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.15)">${t.signed}</td>
+    <td style="padding:7px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.15)">${t.pipeline}</td>
+    <td style="padding:7px 10px;text-align:center;font-weight:700;color:${cl};border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.15)">${p}%</td>
+  </tr>`);
+
+  document.getElementById('reg-bd').innerHTML=rows.join('');
+}
+
 function buildBB(){
   const c=document.getElementById("bb");c.innerHTML="";
   M.forEach(m=>{
@@ -700,7 +768,7 @@ function renderAll(){
   buildKPIs(sm,pm,fc);
   buildLV(sm,pm,fc,ns,np);
   buildC1(sm,pm);buildC2(sw,pw);buildC3(ns,np);buildC4(fc);buildC5(sm,pm);
-  buildBB();renderRoutes();renderExp();
+  buildBB();buildRegionTable();renderRoutes();renderExp();
 }
 renderAll();
 </script>
