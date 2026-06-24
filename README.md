@@ -1,1 +1,604 @@
-# flix-india-km-dashboard
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flix India — KM Dashboard 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--g:#73D700;--gd:rgba(115,215,0,.12);--nv:#0d1117;--cd:#161b22;--br:rgba(255,255,255,.07);--br2:rgba(255,255,255,.13);--tx:#e6edf3;--mt:#7d8590;--mt2:#4a5260;--bl:#388bfd;--bld:rgba(56,139,253,.15);--am:#f0b429;--amd:rgba(240,180,41,.13);--rd:#f85149;--rdd:rgba(248,81,73,.13);--pu:#a371f7;--r:10px;--rs:6px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--nv);color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;min-height:100vh}
+.tb{position:sticky;top:0;z-index:200;background:rgba(13,17,23,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px}
+.logo{display:flex;align-items:center;gap:9px}
+.lm{width:28px;height:28px;background:var(--g);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#000}
+.lt{font-size:13px;font-weight:500}.ls{font-size:10px;color:var(--mt);margin-top:1px}
+.tbr{display:flex;align-items:center;gap:10px}
+.bdg{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:3px 9px;border-radius:999px}
+.bdg-g{background:var(--gd);color:var(--g);border:1px solid rgba(115,215,0,.25)}
+.bdg-b{background:var(--bld);color:var(--bl);border:1px solid rgba(56,139,253,.25)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.tab-nav{display:flex;align-items:center;gap:2px;padding:0 20px;background:var(--cd);border-bottom:1px solid var(--br);height:42px}
+.tn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:var(--rs);border:none;background:transparent;color:var(--mt);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.tn:hover{color:var(--tx);background:rgba(255,255,255,.05)}
+.tn.active{color:var(--g);background:var(--gd);border:1px solid rgba(115,215,0,.2)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.ub{background:linear-gradient(135deg,rgba(115,215,0,.05),rgba(56,139,253,.03));border-bottom:1px solid var(--br);padding:9px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.ul{font-size:11px;color:var(--mt)}.ul strong{color:var(--tx);font-weight:500}
+.ub-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ubtn{display:flex;align-items:center;gap:6px;border:1px dashed var(--br2);border-radius:var(--rs);padding:6px 12px;cursor:pointer;background:transparent;color:var(--mt);font-size:11px;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ubtn:hover{border-color:var(--g);color:var(--g);background:var(--gd)}
+.ubtn-act{border-color:rgba(248,81,73,.4);color:var(--rd)}
+.ubtn-act:hover{background:rgba(248,81,73,.06)}
+input[type=file]{display:none}
+.up-status{font-size:10px;display:none}
+.up-ok{color:var(--g)}.up-warn{color:var(--am)}
+.mn{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.kr{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.kpi{background:var(--cd);border:1px solid var(--br);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--g))}
+.kl{font-size:9px;font-weight:500;letter-spacing:.6px;text-transform:uppercase;color:var(--mt);margin-bottom:6px}
+.kv{font-size:20px;font-weight:300;letter-spacing:-1px;font-family:'DM Mono',monospace;line-height:1}
+.kv span{font-size:11px;font-weight:500;margin-left:2px}
+.ks{font-size:10px;color:var(--mt);margin-top:4px}
+.kd{font-size:10px;font-weight:500;margin-top:5px;display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px}
+.du{background:var(--gd);color:var(--g)}.dd{background:var(--rdd);color:var(--rd)}.dn{background:var(--bld);color:var(--bl)}
+.g21{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}
+.g11{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.card{background:var(--cd);border:1px solid var(--br);border-radius:var(--r);padding:16px 18px}
+.ct{font-size:11px;font-weight:500;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mt)}
+.ld{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.cw{position:relative;width:100%}
+#lv-tbl{width:100%;border-collapse:collapse;min-width:1000px}
+#lv-tbl th{background:#111827;color:#e6edf3;font-weight:500;padding:7px 8px;text-align:center;font-size:9px;border:1px solid #2a3140;white-space:nowrap;letter-spacing:.3px;text-transform:uppercase}
+#lv-tbl th:first-child{text-align:left;min-width:240px;padding-left:12px}
+#lv-tbl td{padding:6px 8px;border:1px solid var(--br);text-align:right;font-size:11px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--tx)}
+#lv-tbl td:first-child{text-align:left;font-size:10px;padding-left:12px;background:rgba(255,255,255,.02);color:var(--mt);font-weight:500}
+#lv-tbl tbody tr:hover td{background:rgba(255,255,255,.02)}
+.row-div td{border-top:2px solid var(--br2)!important}
+.row-vs td{font-weight:600}
+.row-sub td:first-child{color:var(--mt2)!important;padding-left:22px!important;font-style:italic}
+.row-fcst td{font-weight:700;color:var(--g)!important;background:rgba(115,215,0,.05)!important;border-top:2px solid rgba(115,215,0,.3)!important}
+.row-fcst td:first-child{color:var(--g)!important}
+.pg{background:rgba(115,215,0,.18)!important;color:var(--g)!important;font-weight:700;text-align:center!important}
+.pa{background:rgba(240,180,41,.18)!important;color:var(--am)!important;font-weight:700;text-align:center!important}
+.pr{background:rgba(248,81,73,.18)!important;color:var(--rd)!important;font-weight:700;text-align:center!important}
+.pd{color:var(--mt2)!important;text-align:center!important}
+.tot-col{background:rgba(255,255,255,.04)!important;font-weight:600!important}
+.tot-hdr{background:#0d1117!important;border-left:1px solid #444!important}
+.bbs{display:flex;flex-direction:column;gap:7px}
+.brow{display:flex;flex-direction:column;gap:3px}
+.brt{display:flex;justify-content:space-between;font-size:10px}
+.trk{height:4px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.fil{height:100%;border-radius:3px;transition:width .6s ease}
+.ne-tb{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.ne-fs{display:flex;gap:5px;flex-wrap:wrap}
+.fb{font-size:10px;padding:3px 9px;border-radius:999px;border:1px solid var(--br2);background:transparent;color:var(--mt);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.fb:hover,.fb.active{border-color:var(--g);color:var(--g);background:var(--gd)}
+.fb.pip.active{border-color:var(--am);color:var(--am);background:var(--amd)}
+.srch{background:rgba(255,255,255,.04);border:1px solid var(--br2);border-radius:var(--rs);color:var(--tx);font-size:11px;padding:4px 9px;width:180px;font-family:'DM Sans',sans-serif;outline:none}
+.srch:focus{border-color:var(--g)}
+.ne-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.ne-tbl thead tr{border-bottom:1px solid var(--br2)}
+.ne-tbl th{font-size:9px;font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--mt);padding:5px 8px;text-align:left}
+.ne-tbl td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle}
+.ne-tbl tbody tr:hover{background:rgba(255,255,255,.02)}
+.sp{font-size:9px;font-weight:500;padding:2px 7px;border-radius:999px;display:inline-block}
+.sp-s{background:var(--gd);color:var(--g);border:1px solid rgba(115,215,0,.2)}
+.sp-p{background:var(--amd);color:var(--am);border:1px solid rgba(240,180,41,.2)}
+.ipt{background:rgba(255,255,255,.04);border:1px solid var(--br2);border-radius:4px;color:var(--tx);font-size:10px;padding:3px 6px;font-family:'DM Mono',monospace;outline:none;transition:border-color .15s;width:100%}
+.ipt:focus,.ipt:hover{border-color:var(--g)}
+.svb{background:var(--g);color:#000;font-size:11px;font-weight:700;padding:5px 13px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+.svb:hover{opacity:.85}
+.add-btn{background:rgba(115,215,0,.12);color:var(--g);border:1px solid rgba(115,215,0,.25);font-size:11px;font-weight:500;padding:5px 13px;border-radius:var(--rs);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.add-btn:hover{background:rgba(115,215,0,.2)}
+.sn{font-size:10px;color:var(--mt)}
+.ts{overflow-y:auto;max-height:420px}
+.ts::-webkit-scrollbar{width:3px}
+.ts::-webkit-scrollbar-thumb{background:var(--mt2);border-radius:2px}
+.del-btn{background:transparent;border:none;color:var(--mt2);cursor:pointer;font-size:12px;padding:2px 5px;border-radius:3px;transition:color .15s}
+.del-btn:hover{color:var(--rd)}
+.act-panel{background:rgba(248,81,73,.04);border:1px solid rgba(248,81,73,.2);border-radius:var(--r);padding:14px 16px}
+.act-title{font-size:11px;font-weight:500;color:var(--rd);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.act-note{font-size:10px;color:var(--mt);line-height:1.6}
+.fn{font-size:10px;color:var(--mt2);text-align:center;border-top:1px solid var(--br);padding:12px 20px;margin-top:6px}
+</style>
+</head>
+<body>
+
+<header class="tb">
+  <div class="logo">
+    <div class="lm">FX</div>
+    <div><div class="lt">Flix India — KM Dashboard 2026</div><div class="ls">Business Team · Program Management</div></div>
+  </div>
+  <div class="tbr">
+    <span style="font-size:10px;color:var(--mt)" id="lu">Data: W25 · Jun 2026</span>
+    <span id="actuals-badge" style="display:none;background:rgba(248,81,73,.15);color:var(--rd);border:1px solid rgba(248,81,73,.3)" class="bdg">⚡ Actuals loaded</span>
+    <span class="bdg bdg-g"><span class="dot"></span>W25 Live</span>
+    <span class="bdg bdg-b">Jan–Jun Actuals</span>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tn active" onclick="switchTab('dash',this)">📊 Dashboard</button>
+  <button class="tn" onclick="switchTab('exp',this)">🚌 Expansion Editor</button>
+</nav>
+
+<div class="ub">
+  <div class="ul"><strong>Weekly update:</strong> Upload Excel template (Mondays) · Upload weekly actuals to apply cancellations</div>
+  <div class="ub-actions">
+    <label class="ubtn" for="fi-template">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Excel Template
+    </label>
+    <input type="file" id="fi-template" accept=".xlsx,.xls">
+    <span id="us-template" class="up-status up-ok">✓ Template loaded</span>
+    <label class="ubtn ubtn-act" for="fi-actuals">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Upload Weekly Actuals
+    </label>
+    <input type="file" id="fi-actuals" accept=".xlsx,.xls,.csv">
+    <span id="us-actuals" class="up-status up-warn">⚡ Actuals applied</span>
+  </div>
+</div>
+
+<div id="tab-dash" class="tab-pane active">
+<main class="mn">
+  <div class="kr">
+    <div class="kpi" style="--ac:var(--bl)"><div class="kl">KM on Sale</div><div class="kv" id="k1">—<span>M</span></div><div class="ks">Existing lines · open for sale</div><div class="kd" id="k1d">—</div></div>
+    <div class="kpi" style="--ac:#56CFE1"><div class="kl">Existing KM to Open</div><div class="kv" id="k2">—<span>M</span></div><div class="ks">Oct–Dec · not yet on sale</div><div class="kd dn">Existing lines</div></div>
+    <div class="kpi" style="--ac:var(--g)"><div class="kl">New Lines Signed</div><div class="kv" id="k3">—<span>M</span></div><div class="ks">BP contracted · from go-live</div><div class="kd du" id="k3d">—</div></div>
+    <div class="kpi" style="--ac:var(--am)"><div class="kl">Pipeline KM</div><div class="kv" id="k4">—<span>M</span></div><div class="ks">BP scouting ongoing</div><div class="kd" style="background:var(--amd);color:var(--am)" id="k4d">—</div></div>
+    <div class="kpi" style="--ac:var(--rd)"><div class="kl">Forecast (Full Year)</div><div class="kv" id="k5">—<span>M</span></div><div class="ks">All sources vs 58M budget</div><div class="kd du" id="k5d">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">
+      <span>Leadership View — Monthly KM 2026</span>
+      <span style="font-size:10px;padding:3px 9px;border-radius:999px;background:var(--gd);color:var(--g);border:1px solid rgba(115,215,0,.25)" id="lv-badge">Live · auto-updates</span>
+    </div>
+    <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
+    <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ Cancellations not included in forecast</strong></span>
+      <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
+      <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
+      <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
+      <span>New KM = (weekly KM ÷ total buses) × signed pairs × 2</span>
+      <span id="actuals-note" style="display:none;color:var(--rd)">⚡ Actuals applied — cancellations reflected</span>
+    </div>
+  </div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="ct">Monthly KM — all sources vs budget</div>
+      <div class="leg">
+        <div class="li"><div class="ld" style="background:#388bfd"></div>KM on Sale</div>
+        <div class="li"><div class="ld" style="background:#56CFE1"></div>To Open</div>
+        <div class="li"><div class="ld" style="background:#73D700"></div>New Signed</div>
+        <div class="li"><div class="ld" style="background:#f0b429"></div>Pipeline</div>
+        <div class="li"><div class="ld" style="background:rgba(255,255,255,.15)"></div>Budget</div>
+      </div>
+      <div class="cw" style="height:210px"><canvas id="c1"></canvas></div>
+    </div>
+    <div class="card"><div class="ct">On Sale vs Budget %</div><div class="bbs" id="bb"></div></div>
+  </div>
+
+  <div class="g21">
+    <div class="card">
+      <div class="ct">New line KM ramp — W5 to W53</div>
+      <div class="leg">
+        <div class="li"><div class="ld" style="background:#73D700"></div>Signed (BP confirmed)</div>
+        <div class="li"><div class="ld" style="background:#f0b429"></div>Pipeline (scouting)</div>
+      </div>
+      <div class="cw" style="height:200px"><canvas id="c2"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct"># Buses — existing (blue) + new signed (green)</div>
+      <div class="leg">
+        <div class="li"><div class="ld" style="background:#388bfd"></div>Existing (vehicle CSV)</div>
+        <div class="li"><div class="ld" style="background:#73D700"></div>New signed (Pair×2 from go-live)</div>
+      </div>
+      <div class="cw" style="height:200px"><canvas id="c3"></canvas></div>
+    </div>
+  </div>
+
+  <div class="g11">
+    <div class="card">
+      <div class="ct">Cumulative forecast vs budget</div>
+      <div class="leg">
+        <div class="li"><div class="ld" style="background:#73D700"></div>Forecast</div>
+        <div class="li"><div class="ld" style="background:rgba(255,255,255,.2)"></div>Budget</div>
+      </div>
+      <div class="cw" style="height:195px"><canvas id="c4"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Full year KM mix</div>
+      <div class="cw" style="height:155px"><canvas id="c5"></canvas></div>
+      <div class="leg" style="margin-top:10px;justify-content:center;margin-bottom:0" id="dl"></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div id="tab-exp" class="tab-pane">
+<main class="mn">
+  <div class="act-panel" id="act-panel" style="display:none">
+    <div class="act-title">⚡ Weekly Actuals Applied</div>
+    <div class="act-note" id="act-detail">Upload actuals above to apply cancellations.</div>
+  </div>
+  <div class="card">
+    <div class="ct">
+      <span>New Expansion — Go-Live, Weekly KM &amp; Bus Editor</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="add-btn" onclick="addNewLine()">＋ Add new line</button>
+        <button class="svb" onclick="recalc()">Recalculate ↻</button>
+      </div>
+    </div>
+    <div class="ne-tb">
+      <div class="ne-fs" id="ne-fs">
+        <button class="fb active" data-f="all">All</button>
+        <button class="fb" data-f="signed">✅ Signed</button>
+        <button class="fb pip" data-f="pipeline">🔍 Pipeline</button>
+      </div>
+      <input class="srch" placeholder="Search route or line…" id="ne-sr">
+    </div>
+    <div class="ts">
+      <table class="ne-tbl">
+        <thead><tr>
+          <th>Route</th><th>Line Code</th><th>Pair</th><th>BP Name</th><th>Go-live Date</th><th style="text-align:right">Wkly KM/bus</th><th style="text-align:right">Pair KM/wk</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody id="ne-bd"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+      <span class="sn" id="ne-note">Edit go-live dates, pair counts or weekly KM · click Recalculate to update.</span>
+      <span style="font-size:10px;color:var(--mt)" id="ne-ct"></span>
+    </div>
+  </div>
+  <div class="g3">
+    <div class="card"><div class="kl">Signed pairs</div><div class="kv" id="es1" style="margin-top:6px;color:var(--g)">—</div><div class="ks" style="margin-top:4px">BP confirmed · Pair = 2 buses</div></div>
+    <div class="card"><div class="kl">Pipeline pairs</div><div class="kv" id="es2" style="margin-top:6px;color:var(--am)">—</div><div class="ks" style="margin-top:4px">BP scouting ongoing</div></div>
+    <div class="card"><div class="kl">New signed buses</div><div class="kv" id="es3" style="margin-top:6px;color:var(--g)">—</div><div class="ks" style="margin-top:4px">From go-live month onwards</div></div>
+  </div>
+</main>
+</div>
+
+<div class="fn">Flix India Business Team · KM Dashboard 2026 · Internal Use Only</div>
+
+<script>
+const M=["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKS=[5, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53];
+const KM_SALE_BASE={"Jan":4551111,"Feb":3897253,"Mar":4203972,"Apr":4081437,"May":5398124,"Jun":5645466,"Jul":5191159,"Aug":5541501,"Sep":5397694,"Oct":3534374,"Nov":95774,"Dec":98966};
+let KM_SALE={...KM_SALE_BASE};
+const KM_EXISTING={"Jan":4976568,"Feb":4119881,"Mar":4363453,"Apr":4378799,"May":5675103,"Jun":5802936,"Jul":5099153,"Aug":5545163,"Sep":5442419,"Oct":5959253,"Nov":5604832,"Dec":5884420};
+const BUD={"Jan":5504558,"Feb":4373813,"Mar":4656732,"Apr":4904873,"May":5333735,"Jun":5016151,"Jul":4251180,"Aug":4561804,"Sep":4551377,"Oct":4961577,"Nov":4751358,"Dec":5132842};
+const BUSES_EX={"Jan":283,"Feb":278,"Mar":282,"Apr":293,"May":331,"Jun":348,"Jul":348,"Aug":348,"Sep":348,"Oct":348,"Nov":348,"Dec":348};
+
+// NL_DATA: per line — tb=total buses, pb=per-bus weekly KM, wkm=weekly KM for all buses (from W33)
+const NL_DATA={"IN5911":{"tb":4,"pb":4595.4,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":18381.6,"34":18381.6,"35":18381.6,"36":18381.6,"37":18381.6,"38":18381.6,"39":18381.6,"40":18381.6,"41":18381.6,"42":18381.6,"43":18381.6,"44":18381.6,"45":18381.6,"46":18381.6,"47":18381.6,"48":18381.6,"49":18381.6,"50":18381.6,"51":18381.6,"52":18381.6,"53":18381.6}},"IN5342":{"tb":4,"pb":2915.0,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":11660.0,"34":11660.0,"35":11660.0,"36":11660.0,"37":11660.0,"38":11660.0,"39":11660.0,"40":11660.0,"41":11660.0,"42":11660.0,"43":11660.0,"44":11660.0,"45":11660.0,"46":11660.0,"47":11660.0,"48":11660.0,"49":11660.0,"50":11660.0,"51":11660.0,"52":11660.0,"53":11660.0}},"IN5341":{"tb":6,"pb":3851.83,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":23110.98,"34":23110.98,"35":23110.98,"36":23110.98,"37":23110.98,"38":23110.98,"39":23110.98,"40":23110.98,"41":23110.98,"42":23110.98,"43":23110.98,"44":23110.98,"45":23110.98,"46":23110.98,"47":23110.98,"48":23110.98,"49":23110.98,"50":23110.98,"51":23110.98,"52":23110.98,"53":23110.98}},"IN5311":{"tb":6,"pb":2435.87,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":14615.22,"34":14615.22,"35":14615.22,"36":14615.22,"37":14615.22,"38":14615.22,"39":14615.22,"40":14615.22,"41":14615.22,"42":14615.22,"43":14615.22,"44":14615.22,"45":14615.22,"46":14615.22,"47":14615.22,"48":14615.22,"49":14615.22,"50":14615.22,"51":14615.22,"52":14615.22,"53":14615.22}},"IN5222":{"tb":4,"pb":2941.05,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":11764.2,"34":11764.2,"35":11764.2,"36":11764.2,"37":11764.2,"38":11764.2,"39":11764.2,"40":11764.2,"41":11764.2,"42":11764.2,"43":11764.2,"44":11764.2,"45":11764.2,"46":11764.2,"47":11764.2,"48":11764.2,"49":11764.2,"50":11764.2,"51":11764.2,"52":11764.2,"53":11764.2}},"IN5218":{"tb":2,"pb":4533.9,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9067.8,"34":9067.8,"35":9067.8,"36":9067.8,"37":9067.8,"38":9067.8,"39":9067.8,"40":9067.8,"41":9067.8,"42":9067.8,"43":9067.8,"44":9067.8,"45":9067.8,"46":9067.8,"47":9067.8,"48":9067.8,"49":9067.8,"50":9067.8,"51":9067.8,"52":9067.8,"53":9067.8}},"IN5136B":{"tb":2,"pb":3855.54,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":7711.08,"34":7711.08,"35":7711.08,"36":7711.08,"37":7711.08,"38":7711.08,"39":7711.08,"40":7711.08,"41":7711.08,"42":7711.08,"43":7711.08,"44":7711.08,"45":7711.08,"46":7711.08,"47":7711.08,"48":7711.08,"49":7711.08,"50":7711.08,"51":7711.08,"52":7711.08,"53":7711.08}},"IN5136A":{"tb":2,"pb":3839.55,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":7679.1,"34":7679.1,"35":7679.1,"36":7679.1,"37":7679.1,"38":7679.1,"39":7679.1,"40":7679.1,"41":7679.1,"42":7679.1,"43":7679.1,"44":7679.1,"45":7679.1,"46":7679.1,"47":7679.1,"48":7679.1,"49":7679.1,"50":7679.1,"51":7679.1,"52":7679.1,"53":7679.1}},"IN4710A":{"tb":4,"pb":5983.25,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":23933.0,"34":23933.0,"35":23933.0,"36":23933.0,"37":23933.0,"38":23933.0,"39":23933.0,"40":23933.0,"41":23933.0,"42":23933.0,"43":23933.0,"44":23933.0,"45":23933.0,"46":23933.0,"47":23933.0,"48":23933.0,"49":23933.0,"50":23933.0,"51":23933.0,"52":23933.0,"53":23933.0}},"IN4610A":{"tb":4,"pb":4583.88,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":18335.52,"34":18335.52,"35":18335.52,"36":18335.52,"37":18335.52,"38":18335.52,"39":18335.52,"40":18335.52,"41":18335.52,"42":18335.52,"43":18335.52,"44":18335.52,"45":18335.52,"46":18335.52,"47":18335.52,"48":18335.52,"49":18335.52,"50":18335.52,"51":18335.52,"52":18335.52,"53":18335.52}},"IN4530":{"tb":2,"pb":4256.85,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":8513.7,"34":8513.7,"35":8513.7,"36":8513.7,"37":8513.7,"38":8513.7,"39":8513.7,"40":8513.7,"41":8513.7,"42":8513.7,"43":8513.7,"44":8513.7,"45":8513.7,"46":8513.7,"47":8513.7,"48":8513.7,"49":8513.7,"50":8513.7,"51":8513.7,"52":8513.7,"53":8513.7}},"IN4521":{"tb":2,"pb":2944.5,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":5889.0,"34":5889.0,"35":5889.0,"36":5889.0,"37":5889.0,"38":5889.0,"39":5889.0,"40":5889.0,"41":5889.0,"42":5889.0,"43":5889.0,"44":5889.0,"45":5889.0,"46":5889.0,"47":5889.0,"48":5889.0,"49":5889.0,"50":5889.0,"51":5889.0,"52":5889.0,"53":5889.0}},"IN4451":{"tb":4,"pb":4395.55,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17582.2,"34":17582.2,"35":17582.2,"36":17582.2,"37":17582.2,"38":17582.2,"39":17582.2,"40":17582.2,"41":17582.2,"42":17582.2,"43":17582.2,"44":17582.2,"45":17582.2,"46":17582.2,"47":17582.2,"48":17582.2,"49":17582.2,"50":17582.2,"51":17582.2,"52":17582.2,"53":17582.2}},"IN4416":{"tb":2,"pb":3895.15,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":7790.3,"34":7790.3,"35":7790.3,"36":7790.3,"37":7790.3,"38":7790.3,"39":7790.3,"40":7790.3,"41":7790.3,"42":7790.3,"43":7790.3,"44":7790.3,"45":7790.3,"46":7790.3,"47":7790.3,"48":7790.3,"49":7790.3,"50":7790.3,"51":7790.3,"52":7790.3,"53":7790.3}},"IN4415":{"tb":4,"pb":3343.65,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":13374.6,"34":13374.6,"35":13374.6,"36":13374.6,"37":13374.6,"38":13374.6,"39":13374.6,"40":13374.6,"41":13374.6,"42":13374.6,"43":13374.6,"44":13374.6,"45":13374.6,"46":13374.6,"47":13374.6,"48":13374.6,"49":13374.6,"50":13374.6,"51":13374.6,"52":13374.6,"53":13374.6}},"IN4343":{"tb":2,"pb":2384.1,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":4768.2,"34":4768.2,"35":4768.2,"36":4768.2,"37":4768.2,"38":4768.2,"39":4768.2,"40":4768.2,"41":4768.2,"42":4768.2,"43":4768.2,"44":4768.2,"45":4768.2,"46":4768.2,"47":4768.2,"48":4768.2,"49":4768.2,"50":4768.2,"51":4768.2,"52":4768.2,"53":4768.2}},"IN4342":{"tb":2,"pb":2580.9,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":5161.8,"34":5161.8,"35":5161.8,"36":5161.8,"37":5161.8,"38":5161.8,"39":5161.8,"40":5161.8,"41":5161.8,"42":5161.8,"43":5161.8,"44":5161.8,"45":5161.8,"46":5161.8,"47":5161.8,"48":5161.8,"49":5161.8,"50":5161.8,"51":5161.8,"52":5161.8,"53":5161.8}},"IN4306A":{"tb":2,"pb":2709.35,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":5418.7,"34":5418.7,"35":5418.7,"36":5418.7,"37":5418.7,"38":5418.7,"39":5418.7,"40":5418.7,"41":5418.7,"42":5418.7,"43":5418.7,"44":5418.7,"45":5418.7,"46":5418.7,"47":5418.7,"48":5418.7,"49":5418.7,"50":5418.7,"51":5418.7,"52":5418.7,"53":5418.7}},"IN4305A":{"tb":2,"pb":2957.85,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":5915.7,"34":5915.7,"35":5915.7,"36":5915.7,"37":5915.7,"38":5915.7,"39":5915.7,"40":5915.7,"41":5915.7,"42":5915.7,"43":5915.7,"44":5915.7,"45":5915.7,"46":5915.7,"47":5915.7,"48":5915.7,"49":5915.7,"50":5915.7,"51":5915.7,"52":5915.7,"53":5915.7}},"IN4304A":{"tb":2,"pb":2717.05,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":5434.1,"34":5434.1,"35":5434.1,"36":5434.1,"37":5434.1,"38":5434.1,"39":5434.1,"40":5434.1,"41":5434.1,"42":5434.1,"43":5434.1,"44":5434.1,"45":5434.1,"46":5434.1,"47":5434.1,"48":5434.1,"49":5434.1,"50":5434.1,"51":5434.1,"52":5434.1,"53":5434.1}},"IN4301":{"tb":12,"pb":2729.11,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":32749.32,"34":32749.32,"35":32749.32,"36":32749.32,"37":32749.32,"38":32749.32,"39":32749.32,"40":32749.32,"41":32749.32,"42":32749.32,"43":32749.32,"44":32749.32,"45":32749.32,"46":32749.32,"47":32749.32,"48":32749.32,"49":32749.32,"50":32749.32,"51":32749.32,"52":32749.32,"53":32749.32}},"IN4124":{"tb":2,"pb":4435.38,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":8870.76,"34":8870.76,"35":8870.76,"36":8870.76,"37":8870.76,"38":8870.76,"39":8870.76,"40":8870.76,"41":8870.76,"42":8870.76,"43":8870.76,"44":8870.76,"45":8870.76,"46":8870.76,"47":8870.76,"48":8870.76,"49":8870.76,"50":8870.76,"51":8870.76,"52":8870.76,"53":8870.76}},"IN4123":{"tb":4,"pb":4273.08,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17092.32,"34":17092.32,"35":17092.32,"36":17092.32,"37":17092.32,"38":17092.32,"39":17092.32,"40":17092.32,"41":17092.32,"42":17092.32,"43":17092.32,"44":17092.32,"45":17092.32,"46":17092.32,"47":17092.32,"48":17092.32,"49":17092.32,"50":17092.32,"51":17092.32,"52":17092.32,"53":17092.32}},"IN4122":{"tb":4,"pb":4321.15,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17284.6,"34":17284.6,"35":17284.6,"36":17284.6,"37":17284.6,"38":17284.6,"39":17284.6,"40":17284.6,"41":17284.6,"42":17284.6,"43":17284.6,"44":17284.6,"45":17284.6,"46":17284.6,"47":17284.6,"48":17284.6,"49":17284.6,"50":17284.6,"51":17284.6,"52":17284.6,"53":17284.6}},"IN4121":{"tb":4,"pb":4424.07,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17696.28,"34":17696.28,"35":17696.28,"36":17696.28,"37":17696.28,"38":17696.28,"39":17696.28,"40":17696.28,"41":17696.28,"42":17696.28,"43":17696.28,"44":17696.28,"45":17696.28,"46":17696.28,"47":17696.28,"48":17696.28,"49":17696.28,"50":17696.28,"51":17696.28,"52":17696.28,"53":17696.28}},"IN4120":{"tb":4,"pb":4283.23,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17132.92,"34":17132.92,"35":17132.92,"36":17132.92,"37":17132.92,"38":17132.92,"39":17132.92,"40":17132.92,"41":17132.92,"42":17132.92,"43":17132.92,"44":17132.92,"45":17132.92,"46":17132.92,"47":17132.92,"48":17132.92,"49":17132.92,"50":17132.92,"51":17132.92,"52":17132.92,"53":17132.92}},"IN4118A":{"tb":4,"pb":4061.4,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":16245.6,"34":16245.6,"35":16245.6,"36":16245.6,"37":16245.6,"38":16245.6,"39":16245.6,"40":16245.6,"41":16245.6,"42":16245.6,"43":16245.6,"44":16245.6,"45":16245.6,"46":16245.6,"47":16245.6,"48":16245.6,"49":16245.6,"50":16245.6,"51":16245.6,"52":16245.6,"53":16245.6}},"IN4114A":{"tb":4,"pb":4323.48,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17293.92,"34":17293.92,"35":17293.92,"36":17293.92,"37":17293.92,"38":17293.92,"39":17293.92,"40":17293.92,"41":17293.92,"42":17293.92,"43":17293.92,"44":17293.92,"45":17293.92,"46":17293.92,"47":17293.92,"48":17293.92,"49":17293.92,"50":17293.92,"51":17293.92,"52":17293.92,"53":17293.92}},"IN4113":{"tb":4,"pb":4432.98,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17731.92,"34":17731.92,"35":17731.92,"36":17731.92,"37":17731.92,"38":17731.92,"39":17731.92,"40":17731.92,"41":17731.92,"42":17731.92,"43":17731.92,"44":17731.92,"45":17731.92,"46":17731.92,"47":17731.92,"48":17731.92,"49":17731.92,"50":17731.92,"51":17731.92,"52":17731.92,"53":17731.92}},"IN4112A":{"tb":4,"pb":4309.13,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17236.52,"34":17236.52,"35":17236.52,"36":17236.52,"37":17236.52,"38":17236.52,"39":17236.52,"40":17236.52,"41":17236.52,"42":17236.52,"43":17236.52,"44":17236.52,"45":17236.52,"46":17236.52,"47":17236.52,"48":17236.52,"49":17236.52,"50":17236.52,"51":17236.52,"52":17236.52,"53":17236.52}},"IN4107":{"tb":4,"pb":4488.57,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17954.28,"34":17954.28,"35":17954.28,"36":17954.28,"37":17954.28,"38":17954.28,"39":17954.28,"40":17954.28,"41":17954.28,"42":17954.28,"43":17954.28,"44":17954.28,"45":17954.28,"46":17954.28,"47":17954.28,"48":17954.28,"49":17954.28,"50":17954.28,"51":17954.28,"52":17954.28,"53":17954.28}},"IN2820C":{"tb":4,"pb":3603.78,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":14415.12,"34":14415.12,"35":14415.12,"36":14415.12,"37":14415.12,"38":14415.12,"39":14415.12,"40":14415.12,"41":14415.12,"42":14415.12,"43":14415.12,"44":14415.12,"45":14415.12,"46":14415.12,"47":14415.12,"48":14415.12,"49":14415.12,"50":14415.12,"51":14415.12,"52":14415.12,"53":14415.12}},"IN2820B":{"tb":2,"pb":3934.98,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":7869.96,"34":7869.96,"35":7869.96,"36":7869.96,"37":7869.96,"38":7869.96,"39":7869.96,"40":7869.96,"41":7869.96,"42":7869.96,"43":7869.96,"44":7869.96,"45":7869.96,"46":7869.96,"47":7869.96,"48":7869.96,"49":7869.96,"50":7869.96,"51":7869.96,"52":7869.96,"53":7869.96}},"IN2810B":{"tb":2,"pb":3087.3,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6174.6,"34":6174.6,"35":6174.6,"36":6174.6,"37":6174.6,"38":6174.6,"39":6174.6,"40":6174.6,"41":6174.6,"42":6174.6,"43":6174.6,"44":6174.6,"45":6174.6,"46":6174.6,"47":6174.6,"48":6174.6,"49":6174.6,"50":6174.6,"51":6174.6,"52":6174.6,"53":6174.6}},"IN2810A":{"tb":4,"pb":3087.3,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":12349.2,"34":12349.2,"35":12349.2,"36":12349.2,"37":12349.2,"38":12349.2,"39":12349.2,"40":12349.2,"41":12349.2,"42":12349.2,"43":12349.2,"44":12349.2,"45":12349.2,"46":12349.2,"47":12349.2,"48":12349.2,"49":12349.2,"50":12349.2,"51":12349.2,"52":12349.2,"53":12349.2}},"IN2514":{"tb":4,"pb":2789.0,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":11156.0,"34":11156.0,"35":11156.0,"36":11156.0,"37":11156.0,"38":11156.0,"39":11156.0,"40":11156.0,"41":11156.0,"42":11156.0,"43":11156.0,"44":11156.0,"45":11156.0,"46":11156.0,"47":11156.0,"48":11156.0,"49":11156.0,"50":11156.0,"51":11156.0,"52":11156.0,"53":11156.0}},"IN2310C":{"tb":4,"pb":4866.75,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":19467.0,"34":19467.0,"35":19467.0,"36":19467.0,"37":19467.0,"38":19467.0,"39":19467.0,"40":19467.0,"41":19467.0,"42":19467.0,"43":19467.0,"44":19467.0,"45":19467.0,"46":19467.0,"47":19467.0,"48":19467.0,"49":19467.0,"50":19467.0,"51":19467.0,"52":19467.0,"53":19467.0}},"IN1011A":{"tb":2,"pb":3367.5,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6735.0,"34":6735.0,"35":6735.0,"36":6735.0,"37":6735.0,"38":6735.0,"39":6735.0,"40":6735.0,"41":6735.0,"42":6735.0,"43":6735.0,"44":6735.0,"45":6735.0,"46":6735.0,"47":6735.0,"48":6735.0,"49":6735.0,"50":6735.0,"51":6735.0,"52":6735.0,"53":6735.0}},"IN0520D":{"tb":4,"pb":4777.56,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":19110.24,"34":19110.24,"35":19110.24,"36":19110.24,"37":19110.24,"38":19110.24,"39":19110.24,"40":19110.24,"41":19110.24,"42":19110.24,"43":19110.24,"44":19110.24,"45":19110.24,"46":19110.24,"47":19110.24,"48":19110.24,"49":19110.24,"50":19110.24,"51":19110.24,"52":19110.24,"53":19110.24}},"IN0520C":{"tb":2,"pb":4713.96,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9427.92,"34":9427.92,"35":9427.92,"36":9427.92,"37":9427.92,"38":9427.92,"39":9427.92,"40":9427.92,"41":9427.92,"42":9427.92,"43":9427.92,"44":9427.92,"45":9427.92,"46":9427.92,"47":9427.92,"48":9427.92,"49":9427.92,"50":9427.92,"51":9427.92,"52":9427.92,"53":9427.92}},"IN0520B":{"tb":2,"pb":4767.3,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9534.6,"34":9534.6,"35":9534.6,"36":9534.6,"37":9534.6,"38":9534.6,"39":9534.6,"40":9534.6,"41":9534.6,"42":9534.6,"43":9534.6,"44":9534.6,"45":9534.6,"46":9534.6,"47":9534.6,"48":9534.6,"49":9534.6,"50":9534.6,"51":9534.6,"52":9534.6,"53":9534.6}},"IN0426B":{"tb":2,"pb":4916.4,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9832.8,"34":9832.8,"35":9832.8,"36":9832.8,"37":9832.8,"38":9832.8,"39":9832.8,"40":9832.8,"41":9832.8,"42":9832.8,"43":9832.8,"44":9832.8,"45":9832.8,"46":9832.8,"47":9832.8,"48":9832.8,"49":9832.8,"50":9832.8,"51":9832.8,"52":9832.8,"53":9832.8}},"IN0423A":{"tb":2,"pb":4913.7,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9827.4,"34":9827.4,"35":9827.4,"36":9827.4,"37":9827.4,"38":9827.4,"39":9827.4,"40":9827.4,"41":9827.4,"42":9827.4,"43":9827.4,"44":9827.4,"45":9827.4,"46":9827.4,"47":9827.4,"48":9827.4,"49":9827.4,"50":9827.4,"51":9827.4,"52":9827.4,"53":9827.4}},"IN0421":{"tb":6,"pb":3947.07,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":23682.42,"34":23682.42,"35":23682.42,"36":23682.42,"37":23682.42,"38":23682.42,"39":23682.42,"40":23682.42,"41":23682.42,"42":23682.42,"43":23682.42,"44":23682.42,"45":23682.42,"46":23682.42,"47":23682.42,"48":23682.42,"49":23682.42,"50":23682.42,"51":23682.42,"52":23682.42,"53":23682.42}},"IN0410A":{"tb":2,"pb":3373.8,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6747.6,"34":6747.6,"35":6747.6,"36":6747.6,"37":6747.6,"38":6747.6,"39":6747.6,"40":6747.6,"41":6747.6,"42":6747.6,"43":6747.6,"44":6747.6,"45":6747.6,"46":6747.6,"47":6747.6,"48":6747.6,"49":6747.6,"50":6747.6,"51":6747.6,"52":6747.6,"53":6747.6}},"IN0320B":{"tb":2,"pb":3369.29,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6738.58,"34":6738.58,"35":6738.58,"36":6738.58,"37":6738.58,"38":6738.58,"39":6738.58,"40":6738.58,"41":6738.58,"42":6738.58,"43":6738.58,"44":6738.58,"45":6738.58,"46":6738.58,"47":6738.58,"48":6738.58,"49":6738.58,"50":6738.58,"51":6738.58,"52":6738.58,"53":6738.58}},"IN0320":{"tb":2,"pb":3478.44,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6956.88,"34":6956.88,"35":6956.88,"36":6956.88,"37":6956.88,"38":6956.88,"39":6956.88,"40":6956.88,"41":6956.88,"42":6956.88,"43":6956.88,"44":6956.88,"45":6956.88,"46":6956.88,"47":6956.88,"48":6956.88,"49":6956.88,"50":6956.88,"51":6956.88,"52":6956.88,"53":6956.88}},"IN0310L":{"tb":10,"pb":2410.8,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":24108.0,"34":24108.0,"35":24108.0,"36":24108.0,"37":24108.0,"38":24108.0,"39":24108.0,"40":24108.0,"41":24108.0,"42":24108.0,"43":24108.0,"44":24108.0,"45":24108.0,"46":24108.0,"47":24108.0,"48":24108.0,"49":24108.0,"50":24108.0,"51":24108.0,"52":24108.0,"53":24108.0}},"IN0214A":{"tb":6,"pb":3264.1,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":19584.6,"34":19584.6,"35":19584.6,"36":19584.6,"37":19584.6,"38":19584.6,"39":19584.6,"40":19584.6,"41":19584.6,"42":19584.6,"43":19584.6,"44":19584.6,"45":19584.6,"46":19584.6,"47":19584.6,"48":19584.6,"49":19584.6,"50":19584.6,"51":19584.6,"52":19584.6,"53":19584.6}},"IN0213B":{"tb":2,"pb":3016.32,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":6032.64,"34":6032.64,"35":6032.64,"36":6032.64,"37":6032.64,"38":6032.64,"39":6032.64,"40":6032.64,"41":6032.64,"42":6032.64,"43":6032.64,"44":6032.64,"45":6032.64,"46":6032.64,"47":6032.64,"48":6032.64,"49":6032.64,"50":6032.64,"51":6032.64,"52":6032.64,"53":6032.64}},"IN0212C":{"tb":2,"pb":2233.2,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":4466.4,"34":4466.4,"35":4466.4,"36":4466.4,"37":4466.4,"38":4466.4,"39":4466.4,"40":4466.4,"41":4466.4,"42":4466.4,"43":4466.4,"44":4466.4,"45":4466.4,"46":4466.4,"47":4466.4,"48":4466.4,"49":4466.4,"50":4466.4,"51":4466.4,"52":4466.4,"53":4466.4}},"IN0211C":{"tb":4,"pb":2946.3,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":11785.2,"34":11785.2,"35":11785.2,"36":11785.2,"37":11785.2,"38":11785.2,"39":11785.2,"40":11785.2,"41":11785.2,"42":11785.2,"43":11785.2,"44":11785.2,"45":11785.2,"46":11785.2,"47":11785.2,"48":11785.2,"49":11785.2,"50":11785.2,"51":11785.2,"52":11785.2,"53":11785.2}},"IN0210E":{"tb":4,"pb":3105.12,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":12420.48,"34":12420.48,"35":12420.48,"36":12420.48,"37":12420.48,"38":12420.48,"39":12420.48,"40":12420.48,"41":12420.48,"42":12420.48,"43":12420.48,"44":12420.48,"45":12420.48,"46":12420.48,"47":12420.48,"48":12420.48,"49":12420.48,"50":12420.48,"51":12420.48,"52":12420.48,"53":12420.48}},"IN0121D":{"tb":2,"pb":4532.5,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9065.0,"34":9065.0,"35":9065.0,"36":9065.0,"37":9065.0,"38":9065.0,"39":9065.0,"40":9065.0,"41":9065.0,"42":9065.0,"43":9065.0,"44":9065.0,"45":9065.0,"46":9065.0,"47":9065.0,"48":9065.0,"49":9065.0,"50":9065.0,"51":9065.0,"52":9065.0,"53":9065.0}},"IN0121C":{"tb":2,"pb":4782.4,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":9564.8,"34":9564.8,"35":9564.8,"36":9564.8,"37":9564.8,"38":9564.8,"39":9564.8,"40":9564.8,"41":9564.8,"42":9564.8,"43":9564.8,"44":9564.8,"45":9564.8,"46":9564.8,"47":9564.8,"48":9564.8,"49":9564.8,"50":9564.8,"51":9564.8,"52":9564.8,"53":9564.8}},"IN0121":{"tb":10,"pb":3849.49,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":38494.9,"34":38494.9,"35":38494.9,"36":38494.9,"37":38494.9,"38":38494.9,"39":38494.9,"40":38494.9,"41":38494.9,"42":38494.9,"43":38494.9,"44":38494.9,"45":38494.9,"46":38494.9,"47":38494.9,"48":38494.9,"49":38494.9,"50":38494.9,"51":38494.9,"52":38494.9,"53":38494.9}},"IN0120B":{"tb":6,"pb":2890.8,"wkm":{"5":0.0,"25":0.0,"26":0.0,"27":0.0,"28":0.0,"29":0.0,"30":0.0,"31":0.0,"32":0.0,"33":17344.8,"34":17344.8,"35":17344.8,"36":17344.8,"37":17344.8,"38":17344.8,"39":17344.8,"40":17344.8,"41":17344.8,"42":17344.8,"43":17344.8,"44":17344.8,"45":17344.8,"46":17344.8,"47":17344.8,"48":17344.8,"49":17344.8,"50":17344.8,"51":17344.8,"52":17344.8,"53":17344.8}}};
+
+// EXP: one entry per PAIR — each pair = 2 buses, pb = per-bus weekly KM
+let EXP=[{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 1","bp":"Vision Luxury","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 2","bp":"WalCab","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 3","bp":"WalCab","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 4","bp":"CTT","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 5","bp":"New Khaira TPT","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 6","bp":"New Khaira TPT","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0310L","route":"Delhi - Dehradun","pair":"Pair 7","bp":"CTT","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0121","route":"Delhi - Katra","pair":"Pair 1","bp":"Krishakti Logistics","signed":true,"goLive":"2026-08-15","pb":3849.49},{"lc":"IN0121","route":"Delhi - Katra","pair":"Pair 2","bp":"Deepak Raj","signed":true,"goLive":"2026-08-15","pb":3849.49},{"lc":"IN0121","route":"Delhi - Katra","pair":"Pair 3","bp":"Tegra Express","signed":true,"goLive":"2026-08-15","pb":3849.49},{"lc":"IN0121","route":"Delhi - Katra","pair":"Pair 4","bp":"Bedi","signed":true,"goLive":"2026-08-15","pb":3849.49},{"lc":"IN0121","route":"Delhi - Katra","pair":"Pair 5","bp":"Bedi","signed":true,"goLive":"2026-08-15","pb":3849.49},{"lc":"IN2310C","route":"Mumbai - Indore - Ujjain","pair":"Pair 1","bp":"Kalra Travels","signed":true,"goLive":"2026-08-15","pb":4866.75},{"lc":"IN2310C","route":"Mumbai - Indore - Ujjain","pair":"Pair 2","bp":"Kalra Travels","signed":true,"goLive":"2026-08-15","pb":4866.75},{"lc":"IN2514","route":"Hyderabad - Pune","pair":"Pair 1","bp":"SLC Roadlines","signed":true,"goLive":"2026-08-15","pb":2789.0},{"lc":"IN2514","route":"Hyderabad - Pune","pair":"Pair 2","bp":"SLC Roadlines","signed":true,"goLive":"2026-08-15","pb":2789.0},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 1","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 2","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 3","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 4","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 5","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4301","route":"Bengaluru - Chennai","pair":"Pair 6","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":2729.11},{"lc":"IN4304A","route":"Bengaluru - Chennai","pair":"Pair 7","bp":"Sanchit","signed":true,"goLive":"2026-08-15","pb":2717.05},{"lc":"IN4305A","route":"Bengaluru - Chennai","pair":"Pair 8","bp":"VM","signed":true,"goLive":"2026-08-15","pb":2957.85},{"lc":"IN4306A","route":"Bengaluru - Chennai","pair":"Pair 9","bp":"","signed":false,"goLive":"2026-08-15","pb":2709.35},{"lc":"IN5136A","route":"Chennai - Madurai","pair":"Pair 1","bp":"VM","signed":true,"goLive":"2026-08-15","pb":3839.55},{"lc":"IN4342","route":"Bengaluru - Coimbatore","pair":"Pair 1","bp":"Sri Amarnath","signed":true,"goLive":"2026-08-15","pb":2580.9},{"lc":"IN4343","route":"Bengaluru - Coimbatore","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":2384.1},{"lc":"IN4123","route":"Bengaluru - Hyderabad","pair":"Pair 1","bp":"Rayaan Travels","signed":true,"goLive":"2026-08-15","pb":4273.08},{"lc":"IN4122","route":"Bengaluru - Hyderabad","pair":"Pair 2","bp":"Varun Travels","signed":true,"goLive":"2026-08-15","pb":4321.15},{"lc":"IN4120","route":"Bengaluru - Hyderabad","pair":"Pair 3","bp":"Vihara Travels","signed":true,"goLive":"2026-08-15","pb":4283.23},{"lc":"IN4121","route":"Bengaluru - Hyderabad","pair":"Pair 4","bp":"Samanvi Citiconnect","signed":true,"goLive":"2026-08-15","pb":4424.07},{"lc":"IN4107","route":"Bengaluru - Hyderabad","pair":"Pair 5","bp":"Samanvi Travels","signed":true,"goLive":"2026-08-15","pb":4488.57},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 6","bp":"Vikram Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 7","bp":"Rayaan Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 8","bp":"Varun Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 9","bp":"Vihara Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 10","bp":"Samanvi Citiconnect","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 11","bp":"Samanvi Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4113","route":"Bengaluru - Hyderabad","pair":"Pair 12","bp":"Vikram Travels","signed":true,"goLive":"2026-08-15","pb":4432.98},{"lc":"IN4415","route":"Bengaluru - Kochi","pair":"Pair 1","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":3343.65},{"lc":"IN4415","route":"Bengaluru - Kochi","pair":"Pair 2","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":3343.65},{"lc":"IN4710A","route":"Bengaluru - Pune","pair":"Pair 1","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":5983.25},{"lc":"IN4710A","route":"Bengaluru - Pune","pair":"Pair 2","bp":"Siddaganga Bus Rentals","signed":true,"goLive":"2026-08-15","pb":5983.25},{"lc":"IN5218","route":"Chennai - Hyderabad","pair":"Pair 1","bp":"KVR","signed":true,"goLive":"2026-08-15","pb":4533.9},{"lc":"IN5341","route":"Hyderabad - Tirupati","pair":"Pair 1","bp":"Vikram Travels","signed":true,"goLive":"2026-08-15","pb":3851.83},{"lc":"IN5341","route":"Hyderabad - Tirupati","pair":"Pair 2","bp":"Vikram Travels","signed":true,"goLive":"2026-08-15","pb":3851.83},{"lc":"IN5341","route":"Hyderabad - Tirupati","pair":"Pair 3","bp":"Vikram Travels","signed":true,"goLive":"2026-08-15","pb":3851.83},{"lc":"IN5341A","route":"Hyderabad - Tirupati","pair":"Pair 4","bp":"SAT","signed":true,"goLive":"2026-08-15","pb":3851.83},{"lc":"IN4230","route":"Bengaluru - Vizag","pair":"Pair 1","bp":"KVR","signed":true,"goLive":"2026-08-15","pb":4583.88},{"lc":"IN4230","route":"Bengaluru - Vizag","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4583.88},{"lc":"IN5311","route":"Hyderabad - Guntur","pair":"Pair 1","bp":"KVR","signed":true,"goLive":"2026-08-15","pb":2435.87},{"lc":"IN5311","route":"Hyderabad - Guntur","pair":"Pair 2","bp":"KVR","signed":true,"goLive":"2026-08-15","pb":2435.87},{"lc":"IN5311","route":"Hyderabad - Guntur","pair":"Pair 3","bp":"KVR","signed":true,"goLive":"2026-08-15","pb":2435.87},{"lc":"IN5136B","route":"Chennai - Tirunelveli","pair":"Pair 1","bp":"VM","signed":true,"goLive":"2026-08-15","pb":3855.54},{"lc":"IN4451","route":"Bengaluru - Kottayam","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4395.55},{"lc":"IN4451","route":"Bengaluru - Kottayam","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4395.55},{"lc":"IN4521","route":"Bengaluru - Mangalore","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":2944.5},{"lc":"IN5342","route":"Hyderabad - Tirupati (5342)","pair":"Pair 1","bp":"Vandana","signed":true,"goLive":"2026-08-15","pb":2915.0},{"lc":"IN5342","route":"Hyderabad - Tirupati (5342)","pair":"Pair 2","bp":"Vandana","signed":true,"goLive":"2026-08-15","pb":2915.0},{"lc":"IN5222","route":"Chennai - Vijaywada","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":2941.05},{"lc":"IN5222","route":"Chennai - Vijaywada","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":2941.05},{"lc":"IN5911","route":"Hyderabad - Goa","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4595.4},{"lc":"IN5911","route":"Hyderabad - Goa","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4595.4},{"lc":"IN4610A","route":"Bengaluru - Goa","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4583.88},{"lc":"IN4610A","route":"Bengaluru - Goa","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4583.88},{"lc":"IN4530","route":"Bengaluru - Goa","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":4256.85},{"lc":"IN2820B","route":"Mumbai - Goa","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3934.98},{"lc":"IN2820C","route":"Mumbai - Goa","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":3603.78},{"lc":"","route":"Mumbai - Goa","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":3934.98},{"lc":"IN2810B","route":"Pune - Goa","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3087.3},{"lc":"IN2810A","route":"Pune - Goa","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":3087.3},{"lc":"","route":"Pune - Goa","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":3087.3},{"lc":"IN0610A","route":"Delhi - Jaipur","pair":"Pair 1","bp":"Vision Luxury","signed":true,"goLive":"2026-08-15","pb":2410.8},{"lc":"IN0421","route":"Delhi - Lucknow","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3947.07},{"lc":"IN0421","route":"Delhi - Lucknow","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":3947.07},{"lc":"IN0421","route":"Delhi - Lucknow","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":3947.07},{"lc":"IN0210E","route":"Delhi - Manali (add)","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3105.12},{"lc":"IN0210E","route":"Delhi - Manali (add)","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":3105.12},{"lc":"IN0120B","route":"Delhi - Amritsar","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":2890.8},{"lc":"","route":"Delhi - Amritsar","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":2890.8},{"lc":"","route":"Delhi - Amritsar","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":2890.8},{"lc":"IN0211C","route":"Delhi - Dharamshala","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":2946.3},{"lc":"IN0211C","route":"Delhi - Dharamshala","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":2946.3},{"lc":"IN0212C","route":"Delhi - Shimla","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":2233.2},{"lc":"IN0426B","route":"Delhi - Varanasi","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4916.4},{"lc":"IN0214A","route":"Delhi - Bir","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3264.1},{"lc":"IN0214A","route":"Delhi - Bir","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":3264.1},{"lc":"IN0214A","route":"Delhi - Bir","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":3264.1},{"lc":"IN0213B","route":"Delhi - Kasol","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3016.32},{"lc":"IN0423A","route":"Delhi - Gorakhpur","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4913.7},{"lc":"IN1011A","route":"Jaipur - Dehradun","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":3367.5},{"lc":"IN0121C","route":"Delhi - Katra (add)","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4782.4},{"lc":"IN0121D","route":"Delhi - Katra (add)","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4532.5},{"lc":"IN0520D","route":"Delhi - Indore (add)","pair":"Pair 1","bp":"","signed":false,"goLive":"2026-08-15","pb":4777.56},{"lc":"","route":"Delhi - Indore (add)","pair":"Pair 2","bp":"","signed":false,"goLive":"2026-08-15","pb":4777.56},{"lc":"IN4118A","route":"BLR - Hyderabad (add)","pair":"Pair 1","bp":"Balaji","signed":true,"goLive":"2026-08-15","pb":4061.4},{"lc":"IN4118A","route":"BLR - Hyderabad (add)","pair":"Pair 2","bp":"Balaji","signed":true,"goLive":"2026-08-15","pb":4061.4},{"lc":"IN4112A","route":"BLR - Hyderabad (add)","pair":"Pair 3","bp":"","signed":false,"goLive":"2026-08-15","pb":4309.13},{"lc":"IN4112A","route":"BLR - Hyderabad (add)","pair":"Pair 4","bp":"","signed":false,"goLive":"2026-08-15","pb":4309.13},{"lc":"IN4114A","route":"BLR - Hyderabad (add)","pair":"Pair 5","bp":"","signed":false,"goLive":"2026-08-15","pb":4323.48},{"lc":"IN4114B","route":"BLR - Hyderabad (add)","pair":"Pair 6","bp":"","signed":false,"goLive":"2026-08-15","pb":4323.48}];
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+const fmtM=n=>(n/1e6).toFixed(2)+"M";
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":Math.round(n).toLocaleString("en-IN");
+const fmtN=n=>Math.round(n).toLocaleString("en-IN");
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function w2m(w){if(w<=4)return"Jan";if(w<=8)return"Feb";if(w<=13)return"Mar";if(w<=17)return"Apr";if(w<=21)return"May";if(w<=26)return"Jun";if(w<=31)return"Jul";if(w<=35)return"Aug";if(w<=39)return"Sep";if(w<=44)return"Oct";if(w<=48)return"Nov";return"Dec";}
+function glMonth(d){try{return M[new Date(d).getMonth()];}catch{return"Aug";}}
+
+function computeToOpen(){
+  const o={};
+  M.forEach(m=>o[m]=(m==="Oct"||m==="Nov"||m==="Dec")?Math.max(0,(KM_EXISTING[m]||0)-(KM_SALE[m]||0)):0);
+  return o;
+}
+
+// Each pair contributes pb*2 KM per week from W33 onwards
+function computeNewKM(){
+  const sm={},pm={},sw={},pw={};
+  M.forEach(m=>{sm[m]=0;pm[m]=0;});
+  WEEKS.forEach(w=>{sw[w]=0;pw[w]=0;});
+  EXP.forEach(r=>{
+    if(!r.pb) return;
+    const pairKm=r.pb*2; // 1 pair = 2 buses
+    WEEKS.forEach(w=>{
+      if(w<33) return;
+      const m=w2m(w);
+      if(r.signed){sm[m]+=pairKm;sw[w]+=pairKm;}
+      else{pm[m]+=pairKm;pw[w]+=pairKm;}
+    });
+  });
+  return{sm,pm,sw,pw};
+}
+
+// Buses: existing from CSV, signed/pipeline from expansion (Pair=2 buses, from go-live)
+function computeBuses(){
+  const ns={},np={};
+  M.forEach(m=>{ns[m]=0;np[m]=0;});
+  EXP.forEach(r=>{
+    const gli=M.indexOf(glMonth(r.goLive));if(gli<0)return;
+    for(let i=gli;i<12;i++){
+      if(r.signed) ns[M[i]]+=2;
+      else np[M[i]]+=2;
+    }
+  });
+  return{ns,np};
+}
+
+function computeForecast(sm,pm){
+  const to=computeToOpen(),fc={};
+  M.forEach(m=>fc[m]=(KM_SALE[m]||0)+(to[m]||0)+(sm[m]||0)+(pm[m]||0));
+  return fc;
+}
+
+// ── charts ───────────────────────────────────────────────────────────────────
+let CH={};
+const gc="rgba(255,255,255,.05)",tc="#4a5260";
+Chart.defaults.color="#4a5260";Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=10;
+function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+const mkOpts=(stacked,cb)=>{
+  const o={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:cb}}},scales:{x:{grid:{display:false},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>fmt(v)},border:{display:false}}}};
+  if(stacked)o.plugins.tooltip.mode="index";
+  return o;
+};
+
+function buildC1(sm,pm){
+  dc("c1");const to=computeToOpen();
+  CH.c1=new Chart(document.getElementById("c1"),{type:"bar",data:{labels:M,datasets:[
+    {label:"Budget",data:M.map(m=>BUD[m]),backgroundColor:"rgba(255,255,255,.07)",borderColor:"rgba(255,255,255,.15)",borderWidth:1,stack:"b"},
+    {label:"KM on Sale",data:M.map(m=>KM_SALE[m]||0),backgroundColor:"#388bfd",stack:"k"},
+    {label:"To Open",data:M.map(m=>to[m]||0),backgroundColor:"#56CFE1",stack:"k"},
+    {label:"New Signed",data:M.map(m=>sm[m]||0),backgroundColor:"#73D700",stack:"k"},
+    {label:"Pipeline",data:M.map(m=>pm[m]||0),backgroundColor:"#f0b429",stack:"k"}
+  ]},options:mkOpts(true,c=>`  ${c.dataset.label}: ${fmtM(c.raw)}`)});
+}
+
+function buildC2(sw,pw){
+  dc("c2");
+  CH.c2=new Chart(document.getElementById("c2"),{type:"bar",data:{labels:WEEKS.map(w=>"W"+w),datasets:[
+    {label:"Signed",data:WEEKS.map(w=>sw[w]||0),backgroundColor:"#73D700",stack:"s"},
+    {label:"Pipeline",data:WEEKS.map(w=>pw[w]||0),backgroundColor:"#f0b429",stack:"s"}
+  ]},options:{...mkOpts(false,c=>`  ${c.dataset.label}: ${fmt(c.raw)}`),scales:{x:{grid:{display:false},ticks:{color:tc,autoSkip:true,maxTicksLimit:12}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>fmt(v)},border:{display:false}}}}});
+}
+
+function buildC3(ns,np){
+  dc("c3");
+  CH.c3=new Chart(document.getElementById("c3"),{type:"bar",data:{labels:M,datasets:[
+    {label:"Existing",data:M.map(m=>BUSES_EX[m]||0),backgroundColor:"#388bfd",stack:"b"},
+    {label:"New signed",data:M.map(m=>ns[m]||0),backgroundColor:"#73D700",stack:"b"},
+    {label:"Pipeline",data:M.map(m=>np[m]||0),backgroundColor:"#f0b429",stack:"b"}
+  ]},options:{...mkOpts(true),plugins:{legend:{display:false},tooltip:{mode:"index",callbacks:{footer:items=>"Total incl pipeline: "+items.reduce((a,c)=>a+c.raw,0)+" buses"}}}}});
+}
+
+function buildC4(fc){
+  dc("c4");
+  let cf=0,cb=0;const fca=[],bca=[];
+  M.forEach(m=>{cf+=fc[m]||0;cb+=BUD[m];fca.push(Math.round(cf));bca.push(Math.round(cb));});
+  CH.c4=new Chart(document.getElementById("c4"),{type:"line",data:{labels:M,datasets:[
+    {label:"Forecast",data:fca,borderColor:"#73D700",backgroundColor:"rgba(115,215,0,.07)",fill:true,tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:"#73D700"},
+    {label:"Budget",data:bca,borderColor:"rgba(255,255,255,.22)",borderDash:[5,4],borderWidth:1.5,pointRadius:0,fill:false}
+  ]},options:mkOpts(false,c=>`  ${c.dataset.label}: ${fmtM(c.raw)}`)});
+}
+
+function buildC5(sm,pm){
+  dc("c5");const to=computeToOpen();
+  const totOS=Object.values(KM_SALE).reduce((a,b)=>a+b,0);
+  const totTO=Object.values(to).reduce((a,b)=>a+b,0);
+  const totS=Object.values(sm).reduce((a,b)=>a+b,0);
+  const totP=Object.values(pm).reduce((a,b)=>a+b,0);
+  const total=totOS+totTO+totS+totP;
+  const labels=["On Sale","To Open","New Signed","Pipeline"],vals=[totOS,totTO,totS,totP],colors=["#388bfd","#56CFE1","#73D700","#f0b429"];
+  CH.c5=new Chart(document.getElementById("c5"),{type:"doughnut",data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`  ${c.label}: ${fmtM(c.raw)} (${pct(c.raw,total)}%)`}}}}});
+  document.getElementById("dl").innerHTML=labels.map((l,i)=>`<div class="li"><div class="ld" style="background:${colors[i]}"></div>${l} ${pct(vals[i],total)}%</div>`).join("");
+}
+
+function buildBB(){
+  const c=document.getElementById("bb");c.innerHTML="";
+  M.forEach(m=>{
+    const v=KM_SALE[m]||0,b=BUD[m],p=Math.min(Math.round(v/b*100),120);
+    const cl=p>=100?"#73D700":p>=80?"#f0b429":"#f85149";
+    const tag=["Jan","Feb","Mar","Apr","May","Jun"].includes(m)
+      ?`<span style="font-size:9px;color:var(--bl)">actual</span>`
+      :`<span style="font-size:9px;color:var(--mt)">on-sale</span>`;
+    c.innerHTML+=`<div class="brow"><div class="brt"><span style="color:var(--tx);font-weight:500">${m} ${tag}</span><span style="font-weight:600;font-family:'DM Mono',monospace;font-size:10px;color:${cl}">${p}%</span></div><div class="trk"><div class="fil" style="width:${p}%;background:${cl}"></div></div></div>`;
+  });
+}
+
+// ── Leadership Table ──────────────────────────────────────────────────────────
+function buildLV(sm,pm,fc,ns,np){
+  const to=computeToOpen();
+  const os=M.map(m=>KM_SALE[m]||0);
+  const to_=M.map(m=>to[m]||0);
+  const s_km=M.map(m=>sm[m]||0);
+  const p_km=M.map(m=>pm[m]||0);
+  const bd=M.map(m=>BUD[m]||0);
+  const fc2=M.map(m=>fc[m]||0);
+  const b_ex=M.map(m=>BUSES_EX[m]||0);
+  const b_ns=M.map(m=>ns[m]||0);
+  const b_np=M.map(m=>np[m]||0);
+  const tOS=os.reduce((a,b)=>a+b,0),tTO=to_.reduce((a,b)=>a+b,0);
+  const tNS=s_km.reduce((a,b)=>a+b,0),tNP=p_km.reduce((a,b)=>a+b,0);
+  const tBD=bd.reduce((a,b)=>a+b,0),tFC=fc2.reduce((a,b)=>a+b,0);
+  const firstNS=b_ns.find(v=>v>0)||0,firstNP=b_np.find(v=>v>0)||0;
+
+  function ptd(p){const cl=p>=100?"pg":p>=80?"pa":"pr";return`<td class="${cl}">${p}%</td>`;}
+  function ntd(v){return`<td>${v>0?fmtN(Math.round(v)):"-"}</td>`;}
+  function itd(v){return`<td>${v>0?v:"-"}</td>`;}
+  function ptot(p){const cl=p>=100?"pg":p>=80?"pa":"pr";return`<td class="${cl} tot-col">${p}%</td>`;}
+
+  document.getElementById("lv-hd").innerHTML=
+    `<th>Line Item</th>`+M.map(m=>`<th>${m}</th>`).join("")+`<th class="tot-hdr">FY Total</th>`;
+
+  const rows=[];
+  rows.push(`<tr><td>① KM on Sale (existing)</td>${os.map(ntd).join("")}<td class="tot-col">${fmtN(tOS)}</td></tr>`);
+  rows.push(`<tr class="row-sub"><td>② Existing KM to Open (Oct–Dec)</td>${to_.map(ntd).join("")}<td class="tot-col">${fmtN(tTO)}</td></tr>`);
+  rows.push(`<tr class="row-div"><td>③ KM Budget</td>${bd.map(ntd).join("")}<td class="tot-col">${fmtN(tBD)}</td></tr>`);
+  rows.push(`<tr class="row-vs"><td>→ On Sale vs Budget %</td>${M.map((m,i)=>ptd(pct(os[i],bd[i]))).join("")}${ptot(pct(tOS,tBD))}</tr>`);
+  rows.push(`<tr class="row-div"><td>④ New Lines — Signed KM</td>${s_km.map(ntd).join("")}<td class="tot-col">${fmtN(tNS)}</td></tr>`);
+  rows.push(`<tr class="row-sub"><td>⑤ New Lines — Pipeline KM</td>${p_km.map(ntd).join("")}<td class="tot-col">${fmtN(tNP)}</td></tr>`);
+  rows.push(`<tr class="row-div"><td>⑥ Buses — existing on-sale</td>${b_ex.map(itd).join("")}<td class="tot-col">—</td></tr>`);
+  rows.push(`<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from Aug)</td>${b_ns.map(itd).join("")}<td class="tot-col">${firstNS||"-"}</td></tr>`);
+  rows.push(`<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from Aug)</td>${b_np.map(itd).join("")}<td class="tot-col">${firstNP||"-"}</td></tr>`);
+  rows.push(`<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>${fc2.map(ntd).join("")}<td class="tot-col">${fmtN(tFC)}</td></tr>`);
+  rows.push(`<tr class="row-vs"><td>→ Forecast vs Budget %</td>${M.map((m,i)=>ptd(pct(fc2[i],bd[i]))).join("")}${ptot(pct(tFC,tBD))}</tr>`);
+  document.getElementById("lv-bd").innerHTML=rows.join("");
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function buildKPIs(sm,pm,fc){
+  const tOS=Object.values(KM_SALE).reduce((a,b)=>a+b,0);
+  const tTO=Object.values(computeToOpen()).reduce((a,b)=>a+b,0);
+  const tS=Object.values(sm).reduce((a,b)=>a+b,0);
+  const tP=Object.values(pm).reduce((a,b)=>a+b,0);
+  const tFC=Object.values(fc).reduce((a,b)=>a+b,0);
+  const tBD=Object.values(BUD).reduce((a,b)=>a+b,0);
+  const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length;
+  document.getElementById("k1").innerHTML=`${(tOS/1e6).toFixed(1)}<span>M KM</span>`;
+  const od=pct(tOS,tBD)-100;document.getElementById("k1d").className=`kd ${od>=0?"du":"dd"}`;document.getElementById("k1d").textContent=`${od>=0?"▲":"▼"} ${Math.abs(od).toFixed(1)}% vs budget`;
+  document.getElementById("k2").innerHTML=`${(tTO/1e6).toFixed(1)}<span>M KM</span>`;
+  document.getElementById("k3").innerHTML=`${(tS/1e6).toFixed(1)}<span>M KM</span>`;document.getElementById("k3d").textContent=`${sig} signed pairs · ${sig*2} buses`;
+  document.getElementById("k4").innerHTML=`${(tP/1e6).toFixed(1)}<span>M KM</span>`;document.getElementById("k4d").textContent=`${pip} pipeline pairs · ${pip*2} buses`;
+  document.getElementById("k5").innerHTML=`${(tFC/1e6).toFixed(1)}<span>M KM</span>`;
+  const fd=pct(tFC,tBD)-100;document.getElementById("k5d").className=`kd ${fd>=0?"du":"dd"}`;document.getElementById("k5d").textContent=`${fd>=0?"▲":"▼"} ${Math.abs(fd).toFixed(0)}% vs 58M budget`;
+}
+
+// ── Expansion Editor — one row per PAIR ──────────────────────────────────────
+let neF="all",neS="";
+function renderExp(){
+  const filtered=EXP.filter(r=>{
+    const mf=neF==="all"||(neF==="signed"&&r.signed)||(neF==="pipeline"&&!r.signed);
+    const ms=!neS||r.route.toLowerCase().includes(neS.toLowerCase())||r.lc.toLowerCase().includes(neS.toLowerCase())||r.pair.toLowerCase().includes(neS.toLowerCase());
+    return mf&&ms;
+  });
+  document.getElementById("ne-bd").innerHTML=filtered.map(r=>{
+    const i=EXP.indexOf(r);
+    const stat=r.signed?`<span class="sp sp-s">✅ Signed</span>`:`<span class="sp sp-p">🔍 Pipeline</span>`;
+    return `<tr>
+      <td><input class="ipt" value="${r.route}" data-i="${i}" data-f="route" onchange="updE(this)" style="color:var(--tx);font-weight:500;min-width:160px"></td>
+      <td><input class="ipt" value="${r.lc}" data-i="${i}" data-f="lc" onchange="updE(this)" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--mt);width:90px"></td>
+      <td style="text-align:center;font-size:10px;color:var(--mt);white-space:nowrap">${r.pair}</td>
+      <td><input class="ipt" value="${r.bp}" data-i="${i}" data-f="bp" onchange="updE(this)" style="min-width:130px;font-size:10px" placeholder="BP name..."></td>
+      <td><input class="ipt" type="date" value="${r.goLive}" data-i="${i}" data-f="goLive" onchange="updE(this)" style="width:130px"></td>
+      <td><input class="ipt" type="number" min="0" step="100" value="${r.pb}" data-i="${i}" data-f="pb" onchange="updE(this)" style="width:90px;text-align:right" title="Weekly KM per bus (pair=2 buses)"></td>
+      <td style="text-align:right;font-size:10px;color:var(--mt)">${r.pb>0?fmtN(Math.round(r.pb*2)):"—"}</td>
+      <td>${stat}</td>
+      <td><button class="del-btn" onclick="EXP.splice(${i},1);renderExp();markChg()">✕</button></td>
+    </tr>`;
+  }).join("");
+  const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length;
+  document.getElementById("es1").textContent=sig+" pairs · "+(sig*2)+" buses";
+  document.getElementById("es2").textContent=pip+" pairs · "+(pip*2)+" buses";
+  document.getElementById("es3").textContent=(sig*2)+" signed buses from Aug";
+  document.getElementById("ne-ct").textContent=`${EXP.filter(r=>r.signed&&r.bp).map(r=>r.route).filter((v,i,a)=>a.indexOf(v)===i).length} signed routes · ${EXP.filter(r=>!r.signed).map(r=>r.route).filter((v,i,a)=>a.indexOf(v)===i).length} pipeline routes`;
+}
+
+function updE(el){
+  const i=+el.dataset.i,f=el.dataset.f;
+  if(f==="pb"){
+    EXP[i].pb=parseFloat(el.value)||0;
+    EXP[i].signed=EXP[i].bp.trim().length>0;
+  } else if(f==="bp"){
+    EXP[i].bp=el.value;
+    EXP[i].signed=el.value.trim().length>0;
+  } else {
+    EXP[i][f]=el.value;
+  }
+  markChg();
+}
+function markChg(){document.getElementById("ne-note").textContent="Changes made — click Recalculate to update.";document.getElementById("ne-note").style.color="var(--am)";}
+function addNewLine(){
+  EXP.push({lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,goLive:"2026-08-15",pb:0});
+  renderExp();
+  document.getElementById("ne-note").textContent="New pair added — fill Route, Line Code, BP Name, and Weekly KM/bus, then Recalculate.";
+  document.getElementById("ne-note").style.color="var(--am)";
+}
+
+document.getElementById("ne-fs").addEventListener("click",e=>{
+  const b=e.target.closest("[data-f]");if(!b)return;
+  neF=b.dataset.f;document.querySelectorAll(".fb").forEach(x=>x.classList.toggle("active",x.dataset.f===neF));renderExp();
+});
+document.getElementById("ne-sr").addEventListener("input",e=>{neS=e.target.value;renderExp();});
+
+// ── File uploads ──────────────────────────────────────────────────────────────
+function readMonthCols(data){
+  const hdr=data[0]||[],mCols={};
+  hdr.forEach((h,ci)=>{if(M.includes(String(h)))mCols[h]=ci;});
+  return mCols;
+}
+document.getElementById("fi-template").addEventListener("change",function(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const s1=wb.SheetNames.find(s=>s.includes("KM on Sale"));
+      if(s1){
+        const data=XLSX.utils.sheet_to_json(wb.Sheets[s1],{header:1,defval:null});
+        let hdrRow=null,hdrIdx=0;
+        for(let i=0;i<Math.min(data.length,5);i++){if(data[i]&&M.some(m=>data[i].includes(m))){hdrRow=data[i];hdrIdx=i;break;}}
+        if(hdrRow){
+          const mCols=readMonthCols([hdrRow]);
+          for(let i=data.length-1;i>hdrIdx;i--){
+            if(String(data[i]?.[0]||"").toUpperCase().includes("TOTAL")){
+              M.forEach(m=>{const v=parseFloat(data[i][mCols[m]]);if(!isNaN(v)&&v>0)KM_SALE[m]=v;});break;
+            }
+          }
+        }
+      }
+      document.getElementById("us-template").style.display="inline";
+      document.getElementById("lu").textContent="Updated: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+      renderAll();
+    }catch(err){alert("Error: "+err.message);}
+  };reader.readAsArrayBuffer(file);
+});
+
+document.getElementById("fi-actuals").addEventListener("change",function(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
+      const mCols=readMonthCols(data);
+      const sums={};M.forEach(m=>sums[m]=0);
+      for(let i=1;i<data.length;i++)M.forEach(m=>{const v=parseFloat(data[i]?.[mCols[m]]);if(!isNaN(v)&&v>0)sums[m]+=v;});
+      let applied=0;M.forEach(m=>{if(sums[m]>0){KM_SALE[m]=sums[m];applied++;}});
+      if(applied>0){
+        document.getElementById("us-actuals").style.display="inline";
+        document.getElementById("actuals-badge").style.display="inline-flex";
+        document.getElementById("actuals-note").style.display="inline";
+        document.getElementById("act-panel").style.display="block";
+        document.getElementById("act-detail").textContent=`Actuals applied for ${applied} month(s). Last upload: ${new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"})}`;
+        document.getElementById("lv-badge").textContent="Actuals applied ⚡";
+        renderAll();
+      }else alert("No monthly KM data found. Ensure columns are labelled Jan, Feb, Mar etc.");
+    }catch(err){alert("Error: "+err.message);}
+  };reader.readAsArrayBuffer(file);
+});
+
+// ── Tabs & render ─────────────────────────────────────────────────────────────
+function switchTab(id,btn){
+  document.querySelectorAll(".tab-pane").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".tn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
+}
+function recalc(){renderAll();document.getElementById("ne-note").textContent="✓ Updated.";document.getElementById("ne-note").style.color="var(--g)";}
+function renderAll(){
+  const{sm,pm,sw,pw}=computeNewKM();
+  const{ns,np}=computeBuses();
+  const fc=computeForecast(sm,pm);
+  buildKPIs(sm,pm,fc);
+  buildLV(sm,pm,fc,ns,np);
+  buildC1(sm,pm);buildC2(sw,pw);buildC3(ns,np);buildC4(fc);buildC5(sm,pm);
+  buildBB();renderExp();
+}
+renderAll();
+</script>
+</body>
+</html>
