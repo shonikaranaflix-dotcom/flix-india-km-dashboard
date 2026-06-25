@@ -640,6 +640,75 @@ async function delPair(id){
   if(ne){ne.textContent="Pair deleted.";ne.style.color="var(--rd)";}
 }
 
+// Bulk upload go-live dates from Excel
+// Expected columns: Route | Pair | Go-live Date
+// "Route" can be partial match, "Pair" exact e.g. "Pair 1"
+async function bulkGoLive(file){
+  const reader=new FileReader();
+  reader.onload=async function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:"array"});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+      if(!rows.length){alert("No data found in file.");return;}
+
+      // Detect column names flexibly
+      const sample=rows[0];
+      const routeKey=Object.keys(sample).find(k=>/route/i.test(k))||"Route";
+      const pairKey =Object.keys(sample).find(k=>/pair/i.test(k))||"Pair";
+      const dateKey =Object.keys(sample).find(k=>/go.?live|date|launch/i.test(k))||"Go-live Date";
+
+      let updated=0,skipped=0,errors=[];
+      for(const row of rows){
+        const route=(row[routeKey]||"").trim();
+        const pair =(row[pairKey]||"").trim();
+        const rawDate=(row[dateKey]||"").trim();
+        if(!route&&!pair){skipped++;continue;}
+
+        // Parse date — accept DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD Mon YYYY
+        let goLive="";
+        if(rawDate){
+          // Try YYYY-MM-DD first
+          if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+            goLive=rawDate;
+          } else if(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(rawDate)){
+            const parts=rawDate.split(/[\/\-]/);
+            goLive=parts[2]+"-"+parts[1].padStart(2,"0")+"-"+parts[0].padStart(2,"0");
+          } else {
+            // Try native Date parse
+            const d=new Date(rawDate);
+            if(!isNaN(d))goLive=d.toISOString().slice(0,10);
+          }
+        }
+        if(!goLive){errors.push(route+" "+pair+": invalid date '"+rawDate+"'");skipped++;continue;}
+
+        // Find matching pairs — if no pair specified, update ALL pairs for that route
+        let matched;
+        if(pair){
+          matched=EXP.filter(r=>r.route.toLowerCase().includes(route.toLowerCase())&&(r.pair||"").toLowerCase()===pair.toLowerCase());
+        } else {
+          matched=EXP.filter(r=>r.route.toLowerCase().includes(route.toLowerCase()));
+        }
+        if(!matched.length){errors.push(route+" "+pair+": not found");skipped++;continue;}
+
+        for(const r of matched){
+          r.go_live=goLive;
+          await sbPatch("expansion_pairs","id=eq."+r.id,{go_live:goLive,updated_at:new Date().toISOString()});
+          updated++;
+        }
+      }
+
+      let msg="✓ Bulk go-live upload: "+updated+" pair(s) updated";
+      if(skipped)msg+=", "+skipped+" skipped";
+      if(errors.length)msg+="\n\nIssues:\n"+errors.slice(0,5).join("\n");
+      alert(msg);
+      renderAll();
+      const ne=document.getElementById("ne-note");
+      if(ne){ne.textContent="✓ Go-live dates updated for "+updated+" pairs — saved for everyone.";ne.style.color="var(--g)";}
+    }catch(e){alert("Error reading file: "+e.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 async function addNewLine(){
   const row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North"};
   const res=await sbInsert("expansion_pairs",row);
@@ -724,6 +793,7 @@ async function bulkExp(file){
   reader.readAsArrayBuffer(file);
 }
 
+const fgl=document.getElementById("fi-golive");if(fgl)fgl.addEventListener("change",e=>{const f=e.target.files[0];if(f)bulkGoLive(f)});
 const fi=document.getElementById("fi-template");if(fi)fi.addEventListener("change",e=>{const f=e.target.files[0];if(f)upActuals(f)});
 const fa=document.getElementById("fi-actuals");if(fa)fa.addEventListener("change",e=>{const f=e.target.files[0];if(f)upWeekly(f)});
 const fb2=document.getElementById("fi-bulk-exp");if(fb2)fb2.addEventListener("change",e=>{const f=e.target.files[0];if(f)bulkExp(f)});
