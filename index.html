@@ -171,7 +171,7 @@ input[type=file]{display:none}
     </div>
     <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM (signed &amp; pipeline)</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM · existing KM on Sale = actuals (no cancellation applied)</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -362,6 +362,7 @@ const KME={Jan:4976568,Feb:4119881,Mar:4363453,Apr:4378799,May:5675103,Jun:58029
 const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:348,Oct:348,Nov:348,Dec:348};
 const TODAY=new Date().toISOString().slice(0,10);
 const DAYS_PER_WEEK=6; // buses run 6 days/week average
+const CANCEL_RATE=0.08; // 8% cancellation applied to new go-live KM forecast
 const CANCEL_RATE=0.08; // 8% cancellation applied to new go-live signed & pipeline KM
 
 // ── Live data ─────────────────────────────────────────────────────────────────
