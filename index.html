@@ -171,7 +171,7 @@ input[type=file]{display:none}
     </div>
     <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ Cancellations not included in forecast</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM (signed &amp; pipeline)</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -362,6 +362,7 @@ const KME={Jan:4976568,Feb:4119881,Mar:4363453,Apr:4378799,May:5675103,Jun:58029
 const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:348,Oct:348,Nov:348,Dec:348};
 const TODAY=new Date().toISOString().slice(0,10);
 const DAYS_PER_WEEK=6; // buses run 6 days/week average
+const CANCEL_RATE=0.08; // 8% cancellation applied to new go-live signed & pipeline KM
 
 // ── Live data ─────────────────────────────────────────────────────────────────
 let KMS={Jan:4551111,Feb:3897253,Mar:4203972,Apr:4081437,May:5398124,Jun:5645466,Jul:5191159,Aug:5541501,Sep:5397694,Oct:3534374,Nov:95774,Dec:98966};
@@ -415,7 +416,7 @@ function kmOnSale(){
   EXP.forEach(r=>{
     if(!passed(r.go_live))return;
     const pb=getPb(r);if(!pb)return;
-    const pk=pb*2; // 1 pair = 2 buses × pb km/week
+    const pk=pb*2*(1-CANCEL_RATE); // apply 8% cancellation rate
     const sw=goLiveWeek(r.go_live);
     WEEKS.forEach(w=>{if(w>=sw)t[w2m(w)]=(t[w2m(w)]||0)+pk});
   });
@@ -429,7 +430,7 @@ function newKM(){
   EXP.forEach(r=>{
     if(passed(r.go_live))return;
     const pb=getPb(r);if(!pb)return;
-    const pk=pb*2;
+    const pk=pb*2*(1-CANCEL_RATE); // apply 8% cancellation rate
     const startW=goLiveWeek(r.go_live);
     WEEKS.forEach(w=>{
       if(w<startW)return;
@@ -551,7 +552,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td>'+"</tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS:"—")+"</td></tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP:"—")+"</td></tr>");
-  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
+  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · 8% cancellation applied to new lines</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
   r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc2[i],bd[i]))}).join("")+pT(pct(tFC,tBD))+"</tr>");
   bd2.innerHTML=r.join("");
 }
