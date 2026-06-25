@@ -442,11 +442,14 @@ function newKM(){
 
 // FIX 1: bus counts driven by go-live date (not hardcoded Aug)
 function busCounts(){
+  // Incremental: each month shows NEW buses going live THAT month
   const ns={},np={};M.forEach(m=>{ns[m]=0;np[m]=0});
   EXP.forEach(r=>{
-    const gli=M.indexOf(glM(r.go_live||"2026-08-15"));if(gli<0)return;
-    for(let i=gli;i<12;i++)if(r.signed)ns[M[i]]+=2;else np[M[i]]+=2;
+    const glm=glM(r.go_live||"2026-08-15");
+    if(r.signed)ns[glm]=(ns[glm]||0)+2;
+    else np[glm]=(np[glm]||0)+2;
   });
+  // FY Total = sum = total buses ever going live
   return{ns,np};
 }
 
@@ -527,11 +530,9 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const tNP=pk.reduce((a,b)=>a+b,0);
   const tBD=bd.reduce((a,b)=>a+b,0);
   const tFC=fc2.reduce((a,b)=>a+b,0);
-  // FY Total for buses = peak value (last/highest month = Dec)
-  var _bnsNZ=bns.filter(v=>v>0);
-  var _bnpNZ=bnp.filter(v=>v>0);
-  const fNS=_bnsNZ.length?_bnsNZ[_bnsNZ.length-1]:0;
-  const fNP=_bnpNZ.length?_bnpNZ[_bnpNZ.length-1]:0;
+  // FY Total for buses = total buses going live across all months
+  const fNS=bns.reduce(function(a,b){return a+b},0);
+  const fNP=bnp.reduce(function(a,b){return a+b},0);
   const pt=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
   const nt=function(v){return"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>"};
   const it=function(v){return"<td>"+(v>0?v:"-")+"</td>"};
@@ -545,11 +546,11 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-sub"><td>② Existing KM to Open (Oct–Dec)</td>'+to_.map(nt).join("")+nT(tTO)+"</tr>");
   r.push('<tr class="row-div"><td>③ KM Budget</td>'+bd.map(nt).join("")+nT(tBD)+"</tr>");
   r.push('<tr class="row-vs"><td>→ On Sale vs Budget %</td>'+M.map(function(_,i){return pt(pct(os[i],bd[i]))}).join("")+pT(pct(tOS,tBD))+"</tr>");
-  r.push('<tr class="row-div"><td>④ New Lines — Signed KM</td>'+sk.map(nt).join("")+nT(tNS)+"</tr>");
-  r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM</td>'+pk.map(nt).join("")+nT(tNP)+"</tr>");
+  r.push('<tr class="row-div"><td>④ New Lines — Signed KM (future go-lives)</td>'+sk.map(nt).join("")+nT(tNS)+"</tr>");
+  r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM (future go-lives)</td>'+pk.map(nt).join("")+nT(tNP)+"</tr>");
   r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td>'+"</tr>");
-  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS+" ↑":"—")+"</td></tr>");
-  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP+" ↑":"—")+"</td></tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS:"—")+"</td></tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP:"—")+"</td></tr>");
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
   r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc2[i],bd[i]))}).join("")+pT(pct(tFC,tBD))+"</tr>");
   bd2.innerHTML=r.join("");
