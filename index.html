@@ -540,9 +540,9 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const tNP=pk.reduce((a,b)=>a+b,0);
   const tBD=bd.reduce((a,b)=>a+b,0);
   const tFC=fc2.reduce((a,b)=>a+b,0);
-  // FY Total for buses = December value = total buses live at year end
-  const fNS=bns[bns.length-1]||0;
-  const fNP=bnp[bnp.length-1]||0;
+  // FY Total for signed/pipeline = total buses added across all months
+  const fNS=bns.reduce(function(a,b){return a+b},0);
+  const fNP=bnp.reduce(function(a,b){return a+b},0);
   const pt=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
   const nt=function(v){return"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>"};
   const it=function(v){return"<td>"+(v>0?v:"-")+"</td>"};
