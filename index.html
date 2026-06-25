@@ -561,8 +561,16 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class=\"tot-col\">'+bx[bx.length-1]+'</td>'+"</tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS:"—")+"</td></tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP:"—")+"</td></tr>");
-  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · 8% cancellation applied to new lines</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
-  r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc2[i],bd[i]))}).join("")+pT(pct(tFC,tBD))+"</tr>");
+  // Cancellation row: 8% of (signed + pipeline) raw KM
+  var cancel_km=M.map(function(_,i){return -Math.round((sk[i]+pk[i])*CANCEL_RATE)});
+  var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
+  function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
+  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ 8% Cancellation on new go-live KM</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
+  // Net forecast = raw forecast minus cancellation
+  var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
+  var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);
+  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+②+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
+  r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],bd[i]))}).join('')+pT(pct(tFC_NET,tBD))+'</tr>');
   bd2.innerHTML=r.join("");
 }
 
