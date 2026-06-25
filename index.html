@@ -298,6 +298,7 @@ input[type=file]{display:none}
       <span>Pair Detail — Go-Live &amp; Weekly KM Editor</span>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="add-btn" onclick="addNewLine()">＋ Add pair</button>
+        <button class="add-btn" onclick="if(confirm('Reset all go-live dates and changes to default?'))resetEXP()" style="border-color:rgba(248,81,73,.3);color:var(--rd);background:rgba(248,81,73,.05)">↺ Reset</button>
         <button class="svb" onclick="recalc()">Recalculate ↻</button>
       </div>
     </div>
@@ -660,7 +661,7 @@ function renderExp(){
       <td><input class="ipt" type="number" min="0" step="100" value="${r.pb}" data-i="${i}" data-f="pb" onchange="updE(this)" style="width:90px;text-align:right" title="Weekly KM per bus (pair=2 buses)"></td>
       <td style="text-align:right;font-size:10px;color:var(--mt)">${r.pb>0?fmtN(Math.round(r.pb*2)):"—"}</td>
       <td>${stat}</td>
-      <td><button class="del-btn" onclick="EXP.splice(${i},1);renderExp();markChg()">✕</button></td>
+      <td><button class="del-btn" onclick="EXP.splice(${i},1);saveEXP();renderExp();markChg()">✕</button></td>
     </tr>`;
   }).join("");
   const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length;
@@ -674,18 +675,47 @@ function updE(el){
   const i=+el.dataset.i,f=el.dataset.f;
   if(f==="pb"){
     EXP[i].pb=parseFloat(el.value)||0;
-    EXP[i].signed=EXP[i].bp.trim().length>0;
   } else if(f==="bp"){
     EXP[i].bp=el.value;
     EXP[i].signed=el.value.trim().length>0;
   } else {
     EXP[i][f]=el.value;
   }
-  markChg();
+  saveEXP();
+  if(f==="goLive"||f==="pb"||f==="bp"){
+    renderAll();
+    document.getElementById("ne-note").textContent="✓ Updated — dashboard recalculated.";
+    document.getElementById("ne-note").style.color="var(--g)";
+  } else {
+    markChg();
+  }
 }
+function saveEXP(){
+  try{ localStorage.setItem('flix_exp', JSON.stringify(EXP)); } catch(e){}
+}
+
+function loadEXP(){
+  try{
+    const saved = localStorage.getItem('flix_exp');
+    if(saved){
+      const parsed = JSON.parse(saved);
+      // Only restore if same number of routes (sanity check)
+      if(parsed.length >= EXP.length * 0.8){
+        EXP = parsed;
+        console.log('EXP restored from localStorage:', EXP.length, 'pairs');
+      }
+    }
+  } catch(e){ console.log('Could not restore EXP:', e); }
+}
+
+function resetEXP(){
+  localStorage.removeItem('flix_exp');
+  location.reload();
+}
+
 function markChg(){document.getElementById("ne-note").textContent="Changes made — click Recalculate to update.";document.getElementById("ne-note").style.color="var(--am)";}
 function addNewLine(){
-  EXP.push({lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,goLive:"2026-08-15",pb:0});
+  EXP.push({lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,goLive:"2026-08-15",pb:0,bdm:"Aakash",region:"North"});saveEXP();
   renderExp();
   document.getElementById("ne-note").textContent="New pair added — fill Route, Line Code, BP Name, and Weekly KM/bus, then Recalculate.";
   document.getElementById("ne-note").style.color="var(--am)";
@@ -770,6 +800,7 @@ function renderAll(){
   buildC1(sm,pm);buildC2(sw,pw);buildC3(ns,np);buildC4(fc);buildC5(sm,pm);
   buildBB();buildRegionTable();renderRoutes();renderExp();
 }
+loadEXP();
 renderAll();
 </script>
 </body>
