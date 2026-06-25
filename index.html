@@ -372,19 +372,22 @@ const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":Math.ro
 const fmtN=n=>Math.round(n).toLocaleString("en-IN");
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 function w2m(w){if(w<=4)return"Jan";if(w<=8)return"Feb";if(w<=13)return"Mar";if(w<=17)return"Apr";if(w<=21)return"May";if(w<=26)return"Jun";if(w<=31)return"Jul";if(w<=35)return"Aug";if(w<=39)return"Sep";if(w<=44)return"Oct";if(w<=48)return"Nov";return"Dec";}
-function glM(d){try{return M[new Date(d).getMonth()]}catch{return"Aug"}}
-function passed(d){return d&&d<=TODAY}
+function glM(d){try{var s=String(d).slice(0,10).split("-");return M[parseInt(s[1],10)-1]||"Aug"}catch{return"Aug"}}
+function passed(d){if(!d)return false;var s=String(d).slice(0,10);return s<=TODAY}
 
 // FIX 1: go-live date → correct ISO week, drives KM from that week forward
 function goLiveWeek(dateStr){
   try{
-    const d=new Date(dateStr);
+    // Parse date by splitting to avoid timezone issues
+    var parts=String(dateStr).slice(0,10).split("-");
+    var yr=parseInt(parts[0]),mo=parseInt(parts[1])-1,dy=parseInt(parts[2]);
+    var d=new Date(yr,mo,dy); // local time — no timezone shift
     if(isNaN(d)) return 33;
-    const jan4=new Date(d.getFullYear(),0,4);
-    const weekNum=Math.ceil(((d-jan4)/86400000+jan4.getDay()+1)/7);
-    const wn=Math.max(1,Math.min(53,weekNum));
+    var jan4=new Date(yr,0,4);
+    var weekNum=Math.ceil(((d-jan4)/86400000+jan4.getDay()+1)/7);
+    var wn=Math.max(1,Math.min(53,weekNum));
     return WEEKS.find(w=>w>=wn)||WEEKS[WEEKS.length-1];
-  }catch{return 33}
+  }catch(e){return 33}
 }
 
 // FIX 2: per-bus KM uses 6 days/week — pb already stored as weekly KM/bus
