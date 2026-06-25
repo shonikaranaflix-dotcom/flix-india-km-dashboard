@@ -532,7 +532,8 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const bnp=M.map(m=>{_cumP+=np[m]||0;return _cumP}); // cumulative pipeline buses (pair×2)
   // Existing on-sale = total fleet running = vehicle CSV + all signed buses live so far
   // e.g. Aug: 348 existing + 100 new signed = 448; Sep: still 448 (same fleet)
-  const bx=M.map((m,i)=>(BUS0[m]||0)+bns[i]);
+  // Total fleet = existing + signed + pipeline (all cumulative)
+  const bx=M.map((m,i)=>(BUS0[m]||0)+bns[i]+bnp[i]);
   const tOS=os.reduce((a,b)=>a+b,0);
   const tTO=to_.reduce((a,b)=>a+b,0);
   const tNS=sk.reduce((a,b)=>a+b,0);
