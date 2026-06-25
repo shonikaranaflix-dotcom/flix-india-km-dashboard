@@ -858,6 +858,17 @@ async function bulkExp(file){
 }
 
 // ── File upload listeners ─────────────────────────────────────────────────────
+// ── Filter + search listeners ─────────────────────────────────────────────────
+var _nefs=document.getElementById("ne-fs");
+if(_nefs)_nefs.addEventListener("click",function(e){
+  var b=e.target.closest("[data-f]");if(!b)return;
+  neF=b.dataset.f;
+  document.querySelectorAll(".fb").forEach(function(x){x.classList.toggle("active",x.dataset.f===neF)});
+  bExp();
+});
+var _nesr=document.getElementById("ne-sr");
+if(_nesr)_nesr.addEventListener("input",function(e){neS=e.target.value;bExp();});
+
 var _fi=document.getElementById("fi-template");if(_fi)_fi.addEventListener("change",function(e){var f=e.target.files[0];if(f)upActuals(f)});
 var _fa=document.getElementById("fi-actuals");if(_fa)_fa.addEventListener("change",function(e){var f=e.target.files[0];if(f)upWeekly(f)});
 var _fb=document.getElementById("fi-bulk-exp");if(_fb)_fb.addEventListener("change",function(e){var f=e.target.files[0];if(f)bulkExp(f)});
