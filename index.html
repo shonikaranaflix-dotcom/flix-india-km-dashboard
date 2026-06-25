@@ -738,11 +738,34 @@ async function upd(el){
 async function delPair(id){
   if(!confirm("Delete this pair? This cannot be undone."))return;
   var i=EXP.findIndex(function(r){return r.id===id});if(i<0)return;
+  // Remove locally first
   EXP.splice(i,1);
-  try{await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{method:"DELETE",headers:sbH})}catch(e){}
   renderAll();
-  var ne=document.getElementById("ne-note");
-  if(ne){ne.textContent="Pair deleted — removed for everyone.";ne.style.color="var(--rd)"}
+  // Delete from Supabase with proper headers
+  try{
+    var r=await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{
+      method:"DELETE",
+      headers:{
+        "apikey":SB_KEY,
+        "Authorization":"Bearer "+SB_KEY,
+        "Content-Type":"application/json",
+        "Prefer":"return=representation"
+      }
+    });
+    var ne=document.getElementById("ne-note");
+    if(r.ok||r.status===204){
+      if(ne){ne.textContent="✓ Pair deleted — removed for everyone.";ne.style.color="var(--rd)";}
+    } else {
+      // Delete failed — add it back
+      var err=await r.text();
+      if(ne){ne.textContent="⚠ Delete failed ("+r.status+"): "+err.slice(0,80);ne.style.color="var(--rd)";}
+      console.error("Delete failed:",r.status,err);
+    }
+  }catch(e){
+    console.error("Delete error:",e);
+    var ne=document.getElementById("ne-note");
+    if(ne){ne.textContent="⚠ Delete error: "+e.message;ne.style.color="var(--rd)";}
+  }
 }
 
 // ── Add new pair ──────────────────────────────────────────────────────────────
