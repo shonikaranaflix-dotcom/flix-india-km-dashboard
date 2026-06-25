@@ -298,6 +298,10 @@ input[type=file]{display:none}
       <span>Pair Detail — Go-Live &amp; Weekly KM Editor</span>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="add-btn" onclick="addNewLine()">＋ Add pair</button>
+        <label class="add-btn" for="fi-bulk-exp" style="cursor:pointer">⬆ Bulk upload</label>
+        <input type="file" id="fi-bulk-exp" accept=".xlsx,.xls" style="display:none">
+        <label class="add-btn" for="fi-golive" style="cursor:pointer;border-color:rgba(56,139,253,.3);color:var(--bl)">📅 Go-live dates</label>
+        <input type="file" id="fi-golive" accept=".xlsx,.xls,.csv" style="display:none">
         <button class="svb" onclick="recalc()">Recalculate ↻</button>
       </div>
     </div>
@@ -319,6 +323,7 @@ input[type=file]{display:none}
           <th>BDM</th><th>Status</th><th></th>
         </tr></thead>
         <tbody id="ne-bd"></tbody>
+        <tfoot><tr><td colspan="10" style="padding:0"><div id="exp-filter-totals"></div></td></tr></tfoot>
       </table>
     </div>
     <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
@@ -356,8 +361,9 @@ const BUD={Jan:5504558,Feb:4373813,Mar:4656732,Apr:4904873,May:5333735,Jun:50161
 const KME={Jan:4976568,Feb:4119881,Mar:4363453,Apr:4378799,May:5675103,Jun:5802936,Jul:5099153,Aug:5545163,Sep:5442419,Oct:5959253,Nov:5604832,Dec:5884420};
 const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:348,Oct:348,Nov:348,Dec:348};
 const TODAY=new Date().toISOString().slice(0,10);
+const DAYS_PER_WEEK=6; // buses run 6 days/week average
 
-// KM_SALE — pre-loaded with actuals, updated from Supabase on init
+// ── Live data ─────────────────────────────────────────────────────────────────
 let KMS={Jan:4551111,Feb:3897253,Mar:4203972,Apr:4081437,May:5398124,Jun:5645466,Jul:5191159,Aug:5541501,Sep:5397694,Oct:3534374,Nov:95774,Dec:98966};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -365,46 +371,82 @@ const fmtM=n=>(n/1e6).toFixed(2)+"M";
 const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+"M":n>=1e3?(n/1e3).toFixed(0)+"K":Math.round(n).toLocaleString("en-IN");
 const fmtN=n=>Math.round(n).toLocaleString("en-IN");
 const pct=(a,b)=>b?Math.round(a/b*100):0;
-function w2m(w){if(w<=4)return"Jan";if(w<=8)return"Feb";if(w<=13)return"Mar";if(w<=17)return"Apr";if(w<=21)return"May";if(w<=26)return"Jun";if(w<=31)return"Jul";if(w<=35)return"Aug";if(w<=39)return"Sep";if(w<=44)return"Oct";if(w<=48)return"Nov";return"Dec"}
+function w2m(w){if(w<=4)return"Jan";if(w<=8)return"Feb";if(w<=13)return"Mar";if(w<=17)return"Apr";if(w<=21)return"May";if(w<=26)return"Jun";if(w<=31)return"Jul";if(w<=35)return"Aug";if(w<=39)return"Sep";if(w<=44)return"Oct";if(w<=48)return"Nov";return"Dec";}
 function glM(d){try{return M[new Date(d).getMonth()]}catch{return"Aug"}}
 function passed(d){return d&&d<=TODAY}
 
-// ── Computations ──────────────────────────────────────────────────────────────
+// FIX 1: go-live date → correct ISO week, drives KM from that week forward
+function goLiveWeek(dateStr){
+  try{
+    const d=new Date(dateStr);
+    if(isNaN(d)) return 33;
+    const jan4=new Date(d.getFullYear(),0,4);
+    const weekNum=Math.ceil(((d-jan4)/86400000+jan4.getDay()+1)/7);
+    const wn=Math.max(1,Math.min(53,weekNum));
+    return WEEKS.find(w=>w>=wn)||WEEKS[WEEKS.length-1];
+  }catch{return 33}
+}
+
+// FIX 2: per-bus KM uses 6 days/week — pb already stored as weekly KM/bus
+// If pb=0, derive from NL_DATA median weekly / total_buses
+function getPb(r){
+  if(r.pb&&r.pb>0) return r.pb;
+  const nl=NL_DATA[r.lc];
+  if(!nl||!nl.tb) return 0;
+  const nz=Object.values(nl.wkm||nl.weekly_km||{}).filter(v=>v>0);
+  if(!nz.length) return 0;
+  const med=nz.sort((a,b)=>a-b)[Math.floor(nz.length/2)];
+  return med/nl.tb;
+}
+
+// ── Core computations ─────────────────────────────────────────────────────────
 function toOpen(){
   const o={};
   M.forEach(m=>o[m]=(m==="Oct"||m==="Nov"||m==="Dec")?Math.max(0,(KME[m]||0)-(KMS[m]||0)):0);
   return o;
 }
+
+// Passed go-lives → KM moves into on-sale row automatically
 function kmOnSale(){
   const t={};M.forEach(m=>t[m]=KMS[m]||0);
   EXP.forEach(r=>{
-    if(!r.pb||!passed(r.go_live))return;
-    const pk=r.pb*2;
-    WEEKS.forEach(w=>{if(w>=33)t[w2m(w)]=(t[w2m(w)]||0)+pk});
+    if(!passed(r.go_live))return;
+    const pb=getPb(r);if(!pb)return;
+    const pk=pb*2; // 1 pair = 2 buses × pb km/week
+    const sw=goLiveWeek(r.go_live);
+    WEEKS.forEach(w=>{if(w>=sw)t[w2m(w)]=(t[w2m(w)]||0)+pk});
   });
   return t;
 }
+
+// Future go-lives → signed/pipeline new line KM
 function newKM(){
   const sm={},pm={},sw={},pw={};
   M.forEach(m=>{sm[m]=0;pm[m]=0});WEEKS.forEach(w=>{sw[w]=0;pw[w]=0});
   EXP.forEach(r=>{
-    if(!r.pb||passed(r.go_live))return;
-    const pk=r.pb*2;
+    if(passed(r.go_live))return;
+    const pb=getPb(r);if(!pb)return;
+    const pk=pb*2;
+    const startW=goLiveWeek(r.go_live);
     WEEKS.forEach(w=>{
-      if(w<33)return;const m=w2m(w);
+      if(w<startW)return;
+      const m=w2m(w);
       if(r.signed){sm[m]+=pk;sw[w]+=pk}else{pm[m]+=pk;pw[w]+=pk}
     });
   });
   return{sm,pm,sw,pw};
 }
+
+// FIX 1: bus counts driven by go-live date (not hardcoded Aug)
 function busCounts(){
   const ns={},np={};M.forEach(m=>{ns[m]=0;np[m]=0});
   EXP.forEach(r=>{
-    const gi=M.indexOf(glM(r.go_live||"2026-08-15"));if(gi<0)return;
-    for(let i=gi;i<12;i++)if(r.signed)ns[M[i]]+=2;else np[M[i]]+=2;
+    const gli=M.indexOf(glM(r.go_live||"2026-08-15"));if(gli<0)return;
+    for(let i=gli;i<12;i++)if(r.signed)ns[M[i]]+=2;else np[M[i]]+=2;
   });
   return{ns,np};
 }
+
 function forecastKM(kOS,sm,pm){
   const to=toOpen(),fc={};
   M.forEach(m=>fc[m]=(kOS[m]||0)+(to[m]||0)+(sm[m]||0)+(pm[m]||0));
@@ -457,7 +499,7 @@ function bC5(kOS,sm,pm){
   const tot=v.reduce((a,b)=>a+b,0);
   const lb=["On Sale","To Open","New Signed","Pipeline"],cl=["#388bfd","#56CFE1","#73D700","#f0b429"];
   CH.c5=new Chart(document.getElementById("c5"),{type:"doughnut",data:{labels:lb,datasets:[{data:v,backgroundColor:cl,borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:"68%",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>" "+c.label+": "+fmtM(c.raw)+" ("+pct(c.raw,tot)+"%)"}}}}});
-  document.getElementById("dl").innerHTML=lb.map((l,i)=>'<div class="li"><div class="ld" style="background:'+cl[i]+'"></div>'+l+" "+pct(v[i],tot)+"%</div>").join("");
+  document.getElementById("dl").innerHTML=lb.map(function(l,i){return'<div class="li"><div class="ld" style="background:'+cl[i]+'"></div>'+l+" "+pct(v[i],tot)+"%</div>"}).join("");
 }
 function bBB(kOS){
   const c=document.getElementById("bb");if(!c)return;c.innerHTML="";
@@ -469,70 +511,77 @@ function bBB(kOS){
   });
 }
 
-// ── Leadership table ──────────────────────────────────────────────────────────
+// FIX 1: Leadership table — FY Total column sums all 12 months correctly
 function bLV(kOS,sm,pm,fc,ns,np){
   const to=toOpen();
   const os=M.map(m=>kOS[m]||0),to_=M.map(m=>to[m]||0);
   const sk=M.map(m=>sm[m]||0),pk=M.map(m=>pm[m]||0);
   const bd=M.map(m=>BUD[m]),fc2=M.map(m=>fc[m]||0);
   const bx=M.map(m=>BUS0[m]||0),bns=M.map(m=>ns[m]||0),bnp=M.map(m=>np[m]||0);
-  const tOS=os.reduce((a,b)=>a+b,0),tTO=to_.reduce((a,b)=>a+b,0);
-  const tNS=sk.reduce((a,b)=>a+b,0),tNP=pk.reduce((a,b)=>a+b,0);
-  const tBD=bd.reduce((a,b)=>a+b,0),tFC=fc2.reduce((a,b)=>a+b,0);
-  const fNS=bns.find(v=>v>0)||0,fNP=bnp.find(v=>v>0)||0;
-  const pt=p=>{const c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
-  const nt=v=>"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>";
-  const it=v=>"<td>"+(v>0?v:"-")+"</td>";
-  const pT=p=>{const c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+' tot-col">'+p+'%</td>'};
+  const tOS=os.reduce((a,b)=>a+b,0);
+  const tTO=to_.reduce((a,b)=>a+b,0);
+  const tNS=sk.reduce((a,b)=>a+b,0);
+  const tNP=pk.reduce((a,b)=>a+b,0);
+  const tBD=bd.reduce((a,b)=>a+b,0);
+  const tFC=fc2.reduce((a,b)=>a+b,0);
+  const fNS=bns.find(v=>v>0)||0;
+  const fNP=bnp.find(v=>v>0)||0;
+  const pt=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
+  const nt=function(v){return"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>"};
+  const it=function(v){return"<td>"+(v>0?v:"-")+"</td>"};
+  const pT=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+' tot-col">'+p+'%</td>'};
+  const nT=function(v){return'<td class="tot-col">'+(v>0?fmtN(Math.round(v)):"—")+"</td>"};
   const hd=document.getElementById("lv-hd"),bd2=document.getElementById("lv-bd");
   if(!hd||!bd2)return;
   hd.innerHTML="<th>Line Item</th>"+M.map(m=>"<th>"+m+"</th>").join("")+'<th class="tot-hdr">FY Total</th>';
-  const r=[];
-  r.push("<tr><td>① KM on Sale (existing + passed go-lives)</td>"+os.map(nt).join("")+'<td class="tot-col">'+fmtN(tOS)+"</td></tr>");
-  r.push('<tr class="row-sub"><td>② Existing KM to Open (Oct–Dec)</td>'+to_.map(nt).join("")+'<td class="tot-col">'+fmtN(tTO)+"</td></tr>");
-  r.push('<tr class="row-div"><td>③ KM Budget</td>'+bd.map(nt).join("")+'<td class="tot-col">'+fmtN(tBD)+"</td></tr>");
-  r.push('<tr class="row-vs"><td>→ On Sale vs Budget %</td>'+M.map((_,i)=>pt(pct(os[i],bd[i]))).join("")+pT(pct(tOS,tBD))+"</tr>");
-  r.push('<tr class="row-div"><td>④ New Lines — Signed KM</td>'+sk.map(nt).join("")+'<td class="tot-col">'+fmtN(tNS)+"</td></tr>");
-  r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM</td>'+pk.map(nt).join("")+'<td class="tot-col">'+fmtN(tNP)+"</td></tr>");
-  r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td></tr>');
-  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2)</td>'+bns.map(it).join("")+'<td class="tot-col">'+(fNS||"—")+"</td></tr>");
-  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2)</td>'+bnp.map(it).join("")+'<td class="tot-col">'+(fNP||"—")+"</td></tr>");
-  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>'+fc2.map(nt).join("")+'<td class="tot-col">'+fmtN(tFC)+"</td></tr>");
-  r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map((_,i)=>pt(pct(fc2[i],bd[i]))).join("")+pT(pct(tFC,tBD))+"</tr>");
+  var r=[];
+  r.push("<tr><td>① KM on Sale (existing + passed go-lives)</td>"+os.map(nt).join("")+nT(tOS)+"</tr>");
+  r.push('<tr class="row-sub"><td>② Existing KM to Open (Oct–Dec)</td>'+to_.map(nt).join("")+nT(tTO)+"</tr>");
+  r.push('<tr class="row-div"><td>③ KM Budget</td>'+bd.map(nt).join("")+nT(tBD)+"</tr>");
+  r.push('<tr class="row-vs"><td>→ On Sale vs Budget %</td>'+M.map(function(_,i){return pt(pct(os[i],bd[i]))}).join("")+pT(pct(tOS,tBD))+"</tr>");
+  r.push('<tr class="row-div"><td>④ New Lines — Signed KM</td>'+sk.map(nt).join("")+nT(tNS)+"</tr>");
+  r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM</td>'+pk.map(nt).join("")+nT(tNP)+"</tr>");
+  r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td>'+"</tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col">'+(fNS||"—")+"</td></tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col">'+(fNP||"—")+"</td></tr>");
+  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
+  r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc2[i],bd[i]))}).join("")+pT(pct(tFC,tBD))+"</tr>");
   bd2.innerHTML=r.join("");
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 function bKPI(kOS,sm,pm,fc){
   const tOS=Object.values(kOS).reduce((a,b)=>a+b,0);
-  const tS=Object.values(sm).reduce((a,b)=>a+b,0),tP=Object.values(pm).reduce((a,b)=>a+b,0);
-  const tFC=Object.values(fc).reduce((a,b)=>a+b,0),tBD=Object.values(BUD).reduce((a,b)=>a+b,0);
+  const tS=Object.values(sm).reduce((a,b)=>a+b,0);
+  const tP=Object.values(pm).reduce((a,b)=>a+b,0);
+  const tFC=Object.values(fc).reduce((a,b)=>a+b,0);
+  const tBD=Object.values(BUD).reduce((a,b)=>a+b,0);
   const tTO=Object.values(toOpen()).reduce((a,b)=>a+b,0);
   const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length;
-  function sk(id,v){const e=document.getElementById(id);if(e)e.innerHTML=v}
-  function st(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
-  function sc(id,v){const e=document.getElementById(id);if(e)e.className=v}
+  function sk(id,v){var e=document.getElementById(id);if(e)e.innerHTML=v}
+  function st(id,v){var e=document.getElementById(id);if(e)e.textContent=v}
+  function sc(id,v){var e=document.getElementById(id);if(e)e.className=v}
   sk("k1",(tOS/1e6).toFixed(1)+'<span>M KM</span>');
-  const od=pct(tOS,tBD)-100;sc("k1d","kd "+(od>=0?"du":"dd"));st("k1d",(od>=0?"▲":"▼")+" "+Math.abs(od).toFixed(1)+"% vs budget");
+  var od=pct(tOS,tBD)-100;sc("k1d","kd "+(od>=0?"du":"dd"));st("k1d",(od>=0?"▲":"▼")+" "+Math.abs(od).toFixed(1)+"% vs budget");
   sk("k2",(tTO/1e6).toFixed(1)+'<span>M KM</span>');
   sk("k3",(tS/1e6).toFixed(1)+'<span>M KM</span>');st("k3d",sig+" signed pairs · "+sig*2+" buses");
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
   sk("k5",(tFC/1e6).toFixed(1)+'<span>M KM</span>');
-  const fd=pct(tFC,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
+  var fd=pct(tFC,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
 }
 
 // ── Region table ──────────────────────────────────────────────────────────────
 function bReg(){
-  const el=document.getElementById("reg-bd");if(!el)return;
-  const rgs=[{l:"North",b:"Aakash",c:"#388bfd"},{l:"West",b:"Aakash",c:"#a371f7"},{l:"South",b:"Syed",c:"#73D700"}];
-  const tots={all:{t:0,s:0,p:0}};rgs.forEach(r=>tots[r.l]={t:0,s:0,p:0});
-  EXP.forEach(r=>{
-    const rg=r.region||"";
+  var el=document.getElementById("reg-bd");if(!el)return;
+  var rgs=[{l:"North",b:"Aakash",c:"#388bfd"},{l:"West",b:"Aakash",c:"#a371f7"},{l:"South",b:"Syed",c:"#73D700"}];
+  var tots={all:{t:0,s:0,p:0}};rgs.forEach(function(r){tots[r.l]={t:0,s:0,p:0}});
+  EXP.forEach(function(r){
+    var rg=r.region||"";
     if(tots[rg]){tots[rg].t++;if(r.signed)tots[rg].s++;else tots[rg].p++}
     tots.all.t++;if(r.signed)tots.all.s++;else tots.all.p++;
   });
-  const rows=rgs.map(r=>{
-    const t=tots[r.l],p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
+  var rows=rgs.map(function(r){
+    var t=tots[r.l],p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
     return'<tr><td style="padding:6px 10px;border:1px solid rgba(255,255,255,.07)"><span style="font-size:9px;font-weight:600;padding:2px 7px;border-radius:999px;background:'+r.c+'22;color:'+r.c+';border:1px solid '+r.c+'44">'+r.l+'</span></td>'
       +'<td style="padding:6px 10px;font-size:10px;color:var(--mt);border:1px solid rgba(255,255,255,.07)">'+r.b+'</td>'
       +'<td style="padding:6px 10px;text-align:center;font-weight:600;border:1px solid rgba(255,255,255,.07)">'+t.t+'</td>'
@@ -540,7 +589,7 @@ function bReg(){
       +'<td style="padding:6px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07)">'+(t.p||"-")+'</td>'
       +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+cl+';border:1px solid rgba(255,255,255,.07)">'+p+'%</td></tr>';
   });
-  const t=tots.all,p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
+  var t=tots.all,p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
   rows.push('<tr style="font-weight:700;background:rgba(255,255,255,.03)">'
     +'<td style="padding:6px 10px;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2);color:var(--tx)">Total</td>'
     +'<td style="padding:6px 10px;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2);font-size:10px;color:var(--mt)">All</td>'
@@ -552,25 +601,36 @@ function bReg(){
 }
 
 // ── Expansion editor ──────────────────────────────────────────────────────────
-let neF="all",neS="",neBDM="all",neView="route";
-function setBDM(bdm){neBDM=bdm;document.querySelectorAll(".bdm-btn").forEach(b=>b.classList.toggle("active",b.dataset.bdm===bdm));bRts();bExp();}
-function setView(v){neView=v;document.querySelectorAll(".view-btn").forEach(b=>b.classList.toggle("active",b.dataset.v===v));document.getElementById("view-route").style.display=v==="route"?"block":"none";document.getElementById("view-pair").style.display=v==="pair"?"block":"none";}
+var neF="all",neS="",neBDM="all",neView="route";
+
+function setBDM(bdm){
+  neBDM=bdm;
+  document.querySelectorAll(".bdm-btn").forEach(function(b){b.classList.toggle("active",b.dataset.bdm===bdm)});
+  bRts();bExp();
+}
+function setView(v){
+  neView=v;
+  document.querySelectorAll(".view-btn").forEach(function(b){b.classList.toggle("active",b.dataset.v===v)});
+  document.getElementById("view-route").style.display=v==="route"?"block":"none";
+  document.getElementById("view-pair").style.display=v==="pair"?"block":"none";
+}
 
 function bRts(){
-  const el=document.getElementById("rt-bd");if(!el)return;
-  const rts={};
-  EXP.forEach(r=>{
+  var el=document.getElementById("rt-bd");if(!el)return;
+  var rts={};
+  EXP.forEach(function(r){
     if(neBDM!=="all"&&r.bdm!==neBDM)return;
     if(!rts[r.route])rts[r.route]={t:0,s:0,p:0,b:r.bdm,rg:r.region||"",lv:0};
     rts[r.route].t++;if(r.signed)rts[r.route].s++;else rts[r.route].p++;
     if(passed(r.go_live))rts[r.route].lv++;
   });
-  const rO={North:0,West:1,South:2};
-  const srt=Object.entries(rts).sort((a,b)=>{const d=(rO[a[1].rg]||0)-(rO[b[1].rg]||0);return d||a[0].localeCompare(b[0])});
-  const rC={North:"#388bfd",West:"#a371f7",South:"#73D700"};
-  el.innerHTML=srt.map(([rt,i])=>{
-    const p=i.t>0?Math.round(i.s/i.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149",rc=rC[i.rg]||"#7d8590";
-    const lv=i.lv>0?'<span style="font-size:9px;margin-left:5px;color:var(--g)">⚡'+i.lv+' live</span>':"";
+  var rO={North:0,West:1,South:2};
+  var srt=Object.entries(rts).sort(function(a,b){var d=(rO[a[1].rg]||0)-(rO[b[1].rg]||0);return d||a[0].localeCompare(b[0])});
+  var rC={North:"#388bfd",West:"#a371f7",South:"#73D700"};
+  el.innerHTML=srt.map(function(entry){
+    var rt=entry[0],i=entry[1];
+    var p=i.t>0?Math.round(i.s/i.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149",rc=rC[i.rg]||"#7d8590";
+    var lv=i.lv>0?'<span style="font-size:9px;margin-left:5px;color:var(--g)">⚡'+i.lv+' live</span>':"";
     return'<tr><td style="padding:6px 10px;font-weight:500;color:var(--tx)">'+rt+lv+'</td>'
       +'<td style="padding:6px 10px"><span style="font-size:9px;font-weight:600;padding:2px 7px;border-radius:999px;background:'+rc+'22;color:'+rc+';border:1px solid '+rc+'44">'+i.rg+'</span></td>'
       +'<td style="padding:6px 10px;font-size:10px;color:var(--mt)">'+i.b+'</td>'
@@ -582,20 +642,24 @@ function bRts(){
   }).join("");
 }
 
+// FIX 4+5: filter totals + total buses row below table
 function bExp(){
-  const el=document.getElementById("ne-bd");if(!el)return;
-  const flt=EXP.filter(r=>{
-    const mf=neF==="all"||(neF==="signed"&&r.signed)||(neF==="pipeline"&&!r.signed);
-    const ms=!neS||r.route.toLowerCase().includes(neS.toLowerCase())||(r.lc||"").toLowerCase().includes(neS.toLowerCase())||(r.pair||"").toLowerCase().includes(neS.toLowerCase());
+  var el=document.getElementById("ne-bd");if(!el)return;
+  var flt=EXP.filter(function(r){
+    var mf=neF==="all"||(neF==="signed"&&r.signed)||(neF==="pipeline"&&!r.signed);
+    var ms=!neS||r.route.toLowerCase().includes(neS.toLowerCase())
+              ||(r.lc||"").toLowerCase().includes(neS.toLowerCase())
+              ||(r.pair||"").toLowerCase().includes(neS.toLowerCase())
+              ||(r.bp||"").toLowerCase().includes(neS.toLowerCase());
     return mf&&ms&&(neBDM==="all"||r.bdm===neBDM);
   });
-  const lv='<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(115,215,0,.15);color:var(--g)">⚡live</span>';
+
+  var lv='<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(115,215,0,.15);color:var(--g)">⚡live</span>';
   el.innerHTML=flt.map(function(r){
-    const gl=r.go_live||"2026-08-15",ok=passed(gl);
-    const st=r.signed?'<span class="sp sp-s">✅</span>':'<span class="sp sp-p">🔍</span>';
-    const rid=r.id;
-    var row='<tr data-id="'+rid+'" style="'+(ok?"background:rgba(115,215,0,.03)":"")+'">'; 
-    row+='<td><input class="ipt" value="'+r.route+'" data-id="'+rid+'" data-f="route" onchange="upd(this)" style="min-width:130px;font-weight:500;color:'+(ok?"var(--g)":"var(--tx)")+'"></td>';
+    var gl=r.go_live||"2026-08-15",ok=passed(gl);
+    var st=r.signed?'<span class="sp sp-s">✅</span>':'<span class="sp sp-p">🔍</span>';
+    var rid=r.id;
+    var row='<tr data-id="'+rid+'" style="'+(ok?"background:rgba(115,215,0,.03)":"")+'"><td><input class="ipt" value="'+r.route+'" data-id="'+rid+'" data-f="route" onchange="upd(this)" style="min-width:130px;font-weight:500;color:'+(ok?"var(--g)":"var(--tx)")+'"></td>';
     row+='<td><input class="ipt" value="'+(r.lc||"")+'" data-id="'+rid+'" data-f="lc" onchange="upd(this)" style="width:90px;font-family:monospace;font-size:10px;color:var(--mt)"></td>';
     row+='<td><input class="ipt" value="'+(r.pair||"")+'" data-id="'+rid+'" data-f="pair" onchange="upd(this)" style="width:65px;font-size:10px"></td>';
     row+='<td><input class="ipt" value="'+(r.bp||"")+'" data-id="'+rid+'" data-f="bp" onchange="upd(this)" placeholder="BP name" style="min-width:120px;font-size:10px;color:'+(r.signed?"var(--g)":"var(--mt)")+'"></td>';
@@ -604,185 +668,154 @@ function bExp(){
     row+='<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>';
     row+='<td><select class="ipt" data-id="'+rid+'" data-f="bdm" onchange="upd(this)" style="font-size:10px;width:75px"><option'+(r.bdm==="Aakash"?" selected":"")+'>Aakash</option><option'+(r.bdm==="Syed"?" selected":"")+'>Syed</option></select></td>';
     row+='<td>'+st+'</td>';
-    row+='<td><span id="sv'+rid+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+rid+')">✕</button></td>';
-    row+='</tr>';
+    row+='<td><span id="sv'+rid+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+rid+')">✕</button></td></tr>';
     return row;
   }).join("");
-  const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length,lvc=EXP.filter(r=>passed(r.go_live)).length;
-  function st2(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
-  st2("es1",sig+" pairs · "+sig*2+" buses");st2("es2",pip+" pairs · "+pip*2+" buses");
-  st2("es3",sig*2+" signed buses · "+lvc+" pairs live");
-  st2("ne-ct",EXP.filter(r=>r.signed).map(r=>r.route).filter(function(v,i,a){return a.indexOf(v)===i}).length+" signed · "+EXP.filter(r=>!r.signed).map(r=>r.route).filter(function(v,i,a){return a.indexOf(v)===i}).length+" pipeline routes");
+
+  // FIX 4: totals for current filter
+  var fSig=flt.filter(function(r){return r.signed}).length;
+  var fPip=flt.filter(function(r){return !r.signed}).length;
+  var fBus=flt.reduce(function(a,r){return a+2},0); // each pair = 2 buses
+  var fSigBus=flt.filter(function(r){return r.signed}).length*2;
+  var fLive=flt.filter(function(r){return passed(r.go_live)}).length;
+
+  // FIX 4+5: summary below table
+  var sumEl=document.getElementById("exp-filter-totals");
+  if(sumEl){
+    var filterLabel=neS||neBDM!=="all"|neF!=="all"?"Filter result":"All pairs";
+    sumEl.innerHTML='<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;padding:8px 0;border-top:1px solid var(--br);margin-top:6px">'
+      +'<span style="font-size:10px;color:var(--mt)">'+filterLabel+': <strong style="color:var(--tx)">'+flt.length+' pairs</strong></span>'
+      +'<span style="font-size:10px;color:var(--mt)">Signed: <strong style="color:var(--g)">'+fSig+'</strong></span>'
+      +'<span style="font-size:10px;color:var(--mt)">Pipeline: <strong style="color:var(--am)">'+fPip+'</strong></span>'
+      +'<span style="font-size:10px;color:var(--mt)">Total buses: <strong style="color:var(--tx)">'+fBus+'</strong></span>'
+      +'<span style="font-size:10px;color:var(--mt)">Signed buses: <strong style="color:var(--g)">'+fSigBus+'</strong></span>'
+      +(fLive?'<span style="font-size:10px;color:var(--mt)">Live: <strong style="color:var(--g)">⚡ '+fLive+'</strong></span>':"")
+      +'</div>';
+  }
+
+  // FIX 5: overall totals
+  var sig=EXP.filter(function(r){return r.signed}).length;
+  var pip=EXP.filter(function(r){return !r.signed}).length;
+  var lvc=EXP.filter(function(r){return passed(r.go_live)}).length;
+  var totalBuses=EXP.length*2;
+  var sigBuses=sig*2;
+
+  function st2(id,v){var e=document.getElementById(id);if(e)e.textContent=v}
+  st2("es1",sig+" pairs · "+sigBuses+" buses");
+  st2("es2",pip+" pairs");
+  st2("es3",sigBuses+" signed buses · "+lvc+" pairs live · "+totalBuses+" total buses");
+  st2("ne-ct",EXP.filter(function(r){return r.signed}).map(function(r){return r.route}).filter(function(v,i,a){return a.indexOf(v)===i}).length+" signed routes · "+EXP.filter(function(r){return !r.signed}).map(function(r){return r.route}).filter(function(v,i,a){return a.indexOf(v)===i}).length+" pipeline routes");
 }
 
+// ── Save a field to Supabase ──────────────────────────────────────────────────
 async function upd(el){
-  const id=+el.dataset.id,f=el.dataset.f,v=f==="pb"?(parseFloat(el.value)||0):el.value;
-  const i=EXP.findIndex(r=>r.id===id);if(i<0)return;
-  EXP[i][f]=v;if(f==="bp")EXP[i].signed=v.trim().length>0;
-  const sv=document.getElementById("sv"+id);
+  var id=+el.dataset.id,f=el.dataset.f,v=f==="pb"?(parseFloat(el.value)||0):el.value;
+  var i=EXP.findIndex(function(r){return r.id===id});if(i<0)return;
+  EXP[i][f]=v;
+  if(f==="bp")EXP[i].signed=v.trim().length>0;
+  if(f==="bdm")EXP[i].region=v==="Syed"?"South":(["mum","pune","indore","goa","ujjain"].some(function(x){return(EXP[i].route||"").toLowerCase().includes(x)})?"West":"North");
+  var sv=document.getElementById("sv"+id);
   if(sv){sv.textContent="saving…";sv.style.color="var(--am)"}
-  const body={[f]:v,updated_at:new Date().toISOString()};
+  var body={updated_at:new Date().toISOString()};body[f]=v;
   if(f==="bp")body.signed=v.trim().length>0;
+  if(f==="bdm")body.region=EXP[i].region;
   await sbPatch("expansion_pairs","id=eq."+id,body);
-  if(sv){sv.textContent="✓";sv.style.color="var(--g)";setTimeout(()=>{sv.textContent=""},2000)}
-  const ne=document.getElementById("ne-note");
+  if(sv){sv.textContent="✓";sv.style.color="var(--g)";setTimeout(function(){sv.textContent=""},2000)}
+  var ne=document.getElementById("ne-note");
   if(ne){ne.textContent="✓ Saved — visible to everyone.";ne.style.color="var(--g)"}
   renderAll();
 }
 
+// ── Delete a pair ─────────────────────────────────────────────────────────────
 async function delPair(id){
   if(!confirm("Delete this pair? This cannot be undone."))return;
-  const i=EXP.findIndex(r=>r.id===id);if(i<0)return;
+  var i=EXP.findIndex(function(r){return r.id===id});if(i<0)return;
   EXP.splice(i,1);
   try{await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{method:"DELETE",headers:sbH})}catch(e){}
   renderAll();
-  const ne=document.getElementById("ne-note");
-  if(ne){ne.textContent="Pair deleted.";ne.style.color="var(--rd)";}
+  var ne=document.getElementById("ne-note");
+  if(ne){ne.textContent="Pair deleted — removed for everyone.";ne.style.color="var(--rd)"}
 }
 
-// Bulk upload go-live dates from Excel
-// Expected columns: Route | Pair | Go-live Date
-// "Route" can be partial match, "Pair" exact e.g. "Pair 1"
-async function bulkGoLive(file){
-  const reader=new FileReader();
-  reader.onload=async function(ev){
-    try{
-      const wb=XLSX.read(ev.target.result,{type:"array"});
-      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
-      if(!rows.length){alert("No data found in file.");return;}
-
-      // Detect column names flexibly
-      const sample=rows[0];
-      const routeKey=Object.keys(sample).find(k=>/route/i.test(k))||"Route";
-      const pairKey =Object.keys(sample).find(k=>/pair/i.test(k))||"Pair";
-      const dateKey =Object.keys(sample).find(k=>/go.?live|date|launch/i.test(k))||"Go-live Date";
-
-      let updated=0,skipped=0,errors=[];
-      for(const row of rows){
-        const route=(row[routeKey]||"").trim();
-        const pair =(row[pairKey]||"").trim();
-        const rawDate=(row[dateKey]||"").trim();
-        if(!route&&!pair){skipped++;continue;}
-
-        // Parse date — accept DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD Mon YYYY
-        let goLive="";
-        if(rawDate){
-          // Try YYYY-MM-DD first
-          if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
-            goLive=rawDate;
-          } else if(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(rawDate)){
-            const parts=rawDate.split(/[\/\-]/);
-            goLive=parts[2]+"-"+parts[1].padStart(2,"0")+"-"+parts[0].padStart(2,"0");
-          } else {
-            // Try native Date parse
-            const d=new Date(rawDate);
-            if(!isNaN(d))goLive=d.toISOString().slice(0,10);
-          }
-        }
-        if(!goLive){errors.push(route+" "+pair+": invalid date '"+rawDate+"'");skipped++;continue;}
-
-        // Find matching pairs — if no pair specified, update ALL pairs for that route
-        let matched;
-        if(pair){
-          matched=EXP.filter(r=>r.route.toLowerCase().includes(route.toLowerCase())&&(r.pair||"").toLowerCase()===pair.toLowerCase());
-        } else {
-          matched=EXP.filter(r=>r.route.toLowerCase().includes(route.toLowerCase()));
-        }
-        if(!matched.length){errors.push(route+" "+pair+": not found");skipped++;continue;}
-
-        for(const r of matched){
-          r.go_live=goLive;
-          await sbPatch("expansion_pairs","id=eq."+r.id,{go_live:goLive,updated_at:new Date().toISOString()});
-          updated++;
-        }
-      }
-
-      let msg="✓ Bulk go-live upload: "+updated+" pair(s) updated";
-      if(skipped)msg+=", "+skipped+" skipped";
-      if(errors.length)msg+="\n\nIssues:\n"+errors.slice(0,5).join("\n");
-      alert(msg);
-      renderAll();
-      const ne=document.getElementById("ne-note");
-      if(ne){ne.textContent="✓ Go-live dates updated for "+updated+" pairs — saved for everyone.";ne.style.color="var(--g)";}
-    }catch(e){alert("Error reading file: "+e.message);}
-  };
-  reader.readAsArrayBuffer(file);
-}
-
+// ── Add new pair ──────────────────────────────────────────────────────────────
 async function addNewLine(){
-  const row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North"};
-  const res=await sbInsert("expansion_pairs",row);
+  var row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North"};
+  var res=await sbInsert("expansion_pairs",row);
   if(res&&res[0]){EXP.push(res[0]);bExp();bRts()}
 }
 
-document.getElementById("ne-fs").addEventListener("click",e=>{
-  const b=e.target.closest("[data-f]");if(!b)return;
-  neF=b.dataset.f;document.querySelectorAll(".fb").forEach(x=>x.classList.toggle("active",x.dataset.f===neF));bExp();
-});
-document.getElementById("ne-sr").addEventListener("input",e=>{neS=e.target.value;bExp()});
-
-// ── File uploads ──────────────────────────────────────────────────────────────
-async function upActuals(file){
-  const reader=new FileReader();
+// FIX 3: Bulk upload go-live dates
+// Excel columns: Route | Pair (optional) | Go-live Date
+// If Pair is blank, updates ALL pairs on that route
+async function bulkGoLive(file){
+  var reader=new FileReader();
   reader.onload=async function(ev){
-    const wb=XLSX.read(ev.target.result,{type:"array"});
-    const sn=wb.SheetNames.find(s=>s.includes("KM on Sale"))||wb.SheetNames[0];
-    const data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
-    let hr=null,hi=0;
-    for(let i=0;i<Math.min(data.length,5);i++){if(data[i]&&M.some(m=>data[i].includes(m))){hr=data[i];hi=i;break}}
-    if(!hr){alert("Month columns not found");return}
-    const mc={};hr.forEach((h,ci)=>{if(M.includes(String(h||"")))mc[h]=ci});
-    const sums={};M.forEach(m=>sums[m]=0);
-    for(let i=data.length-1;i>hi;i--){
-      if(String(data[i]?.[0]||"").toUpperCase().includes("TOTAL")){
-        M.forEach(m=>{const v=parseFloat(data[i][mc[m]]);if(!isNaN(v)&&v>0)sums[m]=v});break;
+    try{
+      var wb=XLSX.read(ev.target.result,{type:"array"});
+      var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+      if(!rows.length){alert("No data found in file.");return}
+      var sample=rows[0];
+      var routeKey=Object.keys(sample).find(function(k){return/route/i.test(k)})||"Route";
+      var pairKey =Object.keys(sample).find(function(k){return/pair/i.test(k)})||"Pair";
+      var dateKey =Object.keys(sample).find(function(k){return/go.?live|date|launch/i.test(k)})||"Go-live Date";
+      var updated=0,skipped=0,errList=[];
+      for(var ri=0;ri<rows.length;ri++){
+        var row=rows[ri];
+        var route=(row[routeKey]||"").trim();
+        var pair=(row[pairKey]||"").trim();
+        var rawDate=(row[dateKey]||"").toString().trim();
+        if(!route&&!rawDate){skipped++;continue}
+        var goLive="";
+        if(rawDate){
+          if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){
+            goLive=rawDate;
+          } else if(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(rawDate)){
+            var pts=rawDate.split(/[\/\-]/);
+            goLive=pts[2]+"-"+pts[1].padStart(2,"0")+"-"+pts[0].padStart(2,"0");
+          } else {
+            var dd=new Date(rawDate);
+            if(!isNaN(dd))goLive=dd.toISOString().slice(0,10);
+          }
+        }
+        if(!goLive){errList.push(route+" "+pair+": invalid date '"+rawDate+"'");skipped++;continue}
+        var matched=EXP.filter(function(r){
+          var routeMatch=!route||r.route.toLowerCase().includes(route.toLowerCase());
+          var pairMatch=!pair||(r.pair||"").toLowerCase()===pair.toLowerCase();
+          return routeMatch&&pairMatch;
+        });
+        if(!matched.length){errList.push(route+(pair?" "+pair:"")+": not found");skipped++;continue}
+        for(var mi=0;mi<matched.length;mi++){
+          matched[mi].go_live=goLive;
+          await sbPatch("expansion_pairs","id=eq."+matched[mi].id,{go_live:goLive,updated_at:new Date().toISOString()});
+          updated++;
+        }
       }
-    }
-    if(!Object.values(sums).some(v=>v>0))for(let i=hi+1;i<data.length;i++)M.forEach(m=>{const v=parseFloat(data[i]?.[mc[m]]);if(!isNaN(v)&&v>0)sums[m]+=v});
-    const ups=M.map(m=>({month:m,km_value:sums[m]||0,updated_at:new Date().toISOString(),updated_by:"template"}));
-    await sbUpsert("km_actuals",ups);
-    M.forEach(m=>{if(sums[m]>0)KMS[m]=sums[m]});
-    const lu=document.getElementById("lu");if(lu)lu.textContent="Updated: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
-    const ut=document.getElementById("us-template");if(ut)ut.style.display="inline";
-    renderAll();alert("✓ Saved to database — everyone sees updated numbers.");
+      var msg="✓ Go-live upload complete: "+updated+" pair(s) updated";
+      if(skipped)msg+=", "+skipped+" skipped";
+      if(errList.length)msg+="\n\nIssues:\n"+errList.slice(0,5).join("\n");
+      alert(msg);
+      renderAll();
+      var ne=document.getElementById("ne-note");
+      if(ne){ne.textContent="✓ Go-live dates updated for "+updated+" pairs — saved for everyone.";ne.style.color="var(--g)"}
+    }catch(e){alert("Error: "+e.message)}
   };
   reader.readAsArrayBuffer(file);
 }
 
-async function upWeekly(file){
-  const reader=new FileReader();
-  reader.onload=async function(ev){
-    const wb=XLSX.read(ev.target.result,{type:"array"});
-    const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
-    const mc={};(data[0]||[]).forEach((h,ci)=>{if(M.includes(String(h||"")))mc[h]=ci});
-    const sums={};M.forEach(m=>sums[m]=0);
-    for(let i=1;i<data.length;i++)M.forEach(m=>{const v=parseFloat(data[i]?.[mc[m]]);if(!isNaN(v)&&v>0)sums[m]+=v});
-    const ups=M.filter(m=>sums[m]>0).map(m=>({month:m,km_value:sums[m],updated_at:new Date().toISOString(),updated_by:"actuals"}));
-    if(!ups.length){alert("No monthly KM data found");return}
-    await sbUpsert("km_actuals",ups);ups.forEach(r=>KMS[r.month]=r.km_value);
-    const ua=document.getElementById("us-actuals");if(ua)ua.style.display="inline";
-    const ab=document.getElementById("actuals-badge");if(ab)ab.style.display="inline-flex";
-    const an=document.getElementById("actuals-note");if(an)an.style.display="inline";
-    const ap=document.getElementById("act-panel");if(ap)ap.style.display="block";
-    const ad=document.getElementById("act-detail");if(ad)ad.textContent="Actuals saved. Last: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"});
-    const lb=document.getElementById("lv-badge");if(lb)lb.textContent="Actuals applied ⚡";
-    renderAll();
-  };
-  reader.readAsArrayBuffer(file);
-}
-
+// Bulk upload full expansion data
 async function bulkExp(file){
-  const reader=new FileReader();
+  var reader=new FileReader();
   reader.onload=async function(ev){
-    const wb=XLSX.read(ev.target.result,{type:"array"});
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
-    let upd=0,skip=0;
-    for(const row of rows){
-      const rt=(row.Route||row.route||"").trim(),pr=(row.Pair||row.pair||"").trim();
+    var wb=XLSX.read(ev.target.result,{type:"array"});
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+    var upd=0,skip=0;
+    for(var ri=0;ri<rows.length;ri++){
+      var row=rows[ri];
+      var rt=(row.Route||row.route||"").trim(),pr=(row.Pair||row.pair||"").trim();
       if(!rt||!pr){skip++;continue}
-      const i=EXP.findIndex(r=>r.route.toLowerCase()===rt.toLowerCase()&&(r.pair||"").toLowerCase()===pr.toLowerCase());
+      var i=EXP.findIndex(function(r){return r.route.toLowerCase()===rt.toLowerCase()&&(r.pair||"").toLowerCase()===pr.toLowerCase()});
       if(i<0){skip++;continue}
-      const body={};
+      var body={};
       if(row["BP Name"]||row.bp){body.bp=(row["BP Name"]||row.bp).trim();body.signed=body.bp.length>0;EXP[i].bp=body.bp;EXP[i].signed=body.signed}
       if(row["Go-live Date"]||row.go_live){body.go_live=(row["Go-live Date"]||row.go_live).trim();EXP[i].go_live=body.go_live}
       if(row["Weekly KM/bus"]||row.pb){body.pb=parseFloat(row["Weekly KM/bus"]||row.pb)||0;EXP[i].pb=body.pb}
@@ -793,41 +826,93 @@ async function bulkExp(file){
   reader.readAsArrayBuffer(file);
 }
 
-const fgl=document.getElementById("fi-golive");if(fgl)fgl.addEventListener("change",e=>{const f=e.target.files[0];if(f)bulkGoLive(f)});
-const fi=document.getElementById("fi-template");if(fi)fi.addEventListener("change",e=>{const f=e.target.files[0];if(f)upActuals(f)});
-const fa=document.getElementById("fi-actuals");if(fa)fa.addEventListener("change",e=>{const f=e.target.files[0];if(f)upWeekly(f)});
-const fb2=document.getElementById("fi-bulk-exp");if(fb2)fb2.addEventListener("change",e=>{const f=e.target.files[0];if(f)bulkExp(f)});
+// ── File upload listeners ─────────────────────────────────────────────────────
+var _fi=document.getElementById("fi-template");if(_fi)_fi.addEventListener("change",function(e){var f=e.target.files[0];if(f)upActuals(f)});
+var _fa=document.getElementById("fi-actuals");if(_fa)_fa.addEventListener("change",function(e){var f=e.target.files[0];if(f)upWeekly(f)});
+var _fb=document.getElementById("fi-bulk-exp");if(_fb)_fb.addEventListener("change",function(e){var f=e.target.files[0];if(f)bulkExp(f)});
+var _fgl=document.getElementById("fi-golive");if(_fgl)_fgl.addEventListener("change",function(e){var f=e.target.files[0];if(f)bulkGoLive(f)});
+
+// ── Actuals upload → Supabase (shared) ───────────────────────────────────────
+function upActuals(file){
+  var reader=new FileReader();
+  reader.onload=async function(ev){
+    var wb=XLSX.read(ev.target.result,{type:"array"});
+    var sn=wb.SheetNames.find(function(s){return s.includes("KM on Sale")})||wb.SheetNames[0];
+    var data=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:null});
+    var hr=null,hi=0;
+    for(var i=0;i<Math.min(data.length,5);i++){if(data[i]&&M.some(function(m){return data[i].includes(m)})){hr=data[i];hi=i;break}}
+    if(!hr){alert("Month columns not found");return}
+    var mc={};hr.forEach(function(h,ci){if(M.includes(String(h||"")))mc[h]=ci});
+    var sums={};M.forEach(function(m){sums[m]=0});
+    for(var i=data.length-1;i>hi;i--){
+      if(String(data[i]&&data[i][0]||"").toUpperCase().includes("TOTAL")){
+        M.forEach(function(m){var v=parseFloat(data[i][mc[m]]);if(!isNaN(v)&&v>0)sums[m]=v});break;
+      }
+    }
+    if(!Object.values(sums).some(function(v){return v>0}))for(var i=hi+1;i<data.length;i++)M.forEach(function(m){var v=parseFloat(data[i]&&data[i][mc[m]]);if(!isNaN(v)&&v>0)sums[m]+=v});
+    var ups=M.map(function(m){return{month:m,km_value:sums[m]||0,updated_at:new Date().toISOString(),updated_by:"template"}});
+    await sbUpsert("km_actuals",ups);
+    M.forEach(function(m){if(sums[m]>0)KMS[m]=sums[m]});
+    var lu=document.getElementById("lu");if(lu)lu.textContent="Updated: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
+    var ut=document.getElementById("us-template");if(ut)ut.style.display="inline";
+    renderAll();alert("✓ KM on Sale saved to database — everyone sees updated numbers.");
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function upWeekly(file){
+  var reader=new FileReader();
+  reader.onload=async function(ev){
+    var wb=XLSX.read(ev.target.result,{type:"array"});
+    var data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
+    var mc={};(data[0]||[]).forEach(function(h,ci){if(M.includes(String(h||"")))mc[h]=ci});
+    var sums={};M.forEach(function(m){sums[m]=0});
+    for(var i=1;i<data.length;i++)M.forEach(function(m){var v=parseFloat(data[i]&&data[i][mc[m]]);if(!isNaN(v)&&v>0)sums[m]+=v});
+    var ups=M.filter(function(m){return sums[m]>0}).map(function(m){return{month:m,km_value:sums[m],updated_at:new Date().toISOString(),updated_by:"actuals"}});
+    if(!ups.length){alert("No monthly KM data found");return}
+    await sbUpsert("km_actuals",ups);ups.forEach(function(r){KMS[r.month]=r.km_value});
+    var ua=document.getElementById("us-actuals");if(ua)ua.style.display="inline";
+    var ab=document.getElementById("actuals-badge");if(ab)ab.style.display="inline-flex";
+    var an=document.getElementById("actuals-note");if(an)an.style.display="inline";
+    var ap=document.getElementById("act-panel");if(ap)ap.style.display="block";
+    var ad=document.getElementById("act-detail");if(ad)ad.textContent="Actuals saved for "+ups.length+" month(s). Last: "+new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+    var lb=document.getElementById("lv-badge");if(lb)lb.textContent="Actuals applied ⚡";
+    renderAll();
+  };
+  reader.readAsArrayBuffer(file);
+}
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 function switchTab(id,btn){
-  document.querySelectorAll(".tab-pane").forEach(t=>t.classList.remove("active"));
-  document.querySelectorAll(".tn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tab-pane").forEach(function(t){t.classList.remove("active")});
+  document.querySelectorAll(".tn").forEach(function(b){b.classList.remove("active")});
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
 }
 function recalc(){renderAll()}
 
 // ── Master render ─────────────────────────────────────────────────────────────
 function renderAll(){
-  const kOS=kmOnSale();
-  const{sm,pm,sw,pw}=newKM();
-  const{ns,np}=busCounts();
-  const fc=forecastKM(kOS,sm,pm);
+  var kOS=kmOnSale();
+  var nkm=newKM();var sm=nkm.sm,pm=nkm.pm,sw=nkm.sw,pw=nkm.pw;
+  var bc=busCounts();var ns=bc.ns,np=bc.np;
+  var fc=forecastKM(kOS,sm,pm);
   bKPI(kOS,sm,pm,fc);bLV(kOS,sm,pm,fc,ns,np);
   bC1(kOS,sm,pm);bC2(sw,pw);bC3(ns,np);bC4(fc);bC5(kOS,sm,pm);
   bBB(kOS);bReg();bRts();bExp();
 }
 
-// ── Startup: render immediately with embedded data, then sync from Supabase ───
+// ── Init: render immediately, then sync from Supabase ─────────────────────────
 renderAll();
 
 (async function(){
-  const badge=document.getElementById("lv-badge");
+  var badge=document.getElementById("lv-badge");
   try{
-    const[acts,prs]=await Promise.all([
+    var results=await Promise.all([
       sbGet("km_actuals","order=id.asc"),
       sbGet("expansion_pairs","order=id.asc&limit=200")
     ]);
-    if(Array.isArray(acts)&&acts.length)acts.forEach(r=>{if(r.month&&r.km_value>0)KMS[r.month]=+r.km_value});
+    var acts=results[0],prs=results[1];
+    if(Array.isArray(acts)&&acts.length)acts.forEach(function(r){if(r.month&&r.km_value>0)KMS[r.month]=+r.km_value});
     if(Array.isArray(prs)&&prs.length){EXP=prs;if(badge)badge.textContent="Live · Supabase"}
     else if(badge)badge.textContent="Live · cached";
     renderAll();
@@ -836,7 +921,6 @@ renderAll();
     if(badge)badge.textContent="Live · cached";
   }
 })();
-
 
 </script>
 </body>
