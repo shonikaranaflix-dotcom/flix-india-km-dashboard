@@ -323,7 +323,7 @@ input[type=file]{display:none}
           <th>BDM</th><th>Status</th><th></th>
         </tr></thead>
         <tbody id="ne-bd"></tbody>
-        <tfoot><tr><td colspan="10" style="padding:0"><div id="exp-filter-totals"></div></td></tr></tfoot>
+        <tfoot><tr><td colspan="10"><div id="exp-filter-totals"></div></td></tr></tfoot>
       </table>
     </div>
     <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
@@ -524,8 +524,11 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const tNP=pk.reduce((a,b)=>a+b,0);
   const tBD=bd.reduce((a,b)=>a+b,0);
   const tFC=fc2.reduce((a,b)=>a+b,0);
-  const fNS=bns.find(v=>v>0)||0;
-  const fNP=bnp.find(v=>v>0)||0;
+  // FY Total for buses = peak value (last/highest month = Dec)
+  var _bnsNZ=bns.filter(v=>v>0);
+  var _bnpNZ=bnp.filter(v=>v>0);
+  const fNS=_bnsNZ.length?_bnsNZ[_bnsNZ.length-1]:0;
+  const fNP=_bnpNZ.length?_bnpNZ[_bnpNZ.length-1]:0;
   const pt=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
   const nt=function(v){return"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>"};
   const it=function(v){return"<td>"+(v>0?v:"-")+"</td>"};
@@ -542,8 +545,8 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-div"><td>④ New Lines — Signed KM</td>'+sk.map(nt).join("")+nT(tNS)+"</tr>");
   r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM</td>'+pk.map(nt).join("")+nT(tNP)+"</tr>");
   r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td>'+"</tr>");
-  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col">'+(fNS||"—")+"</td></tr>");
-  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col">'+(fNP||"—")+"</td></tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS+" ↑":"—")+"</td></tr>");
+  r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP+" ↑":"—")+"</td></tr>");
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · excl. cancellations</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
   r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc2[i],bd[i]))}).join("")+pT(pct(tFC,tBD))+"</tr>");
   bd2.innerHTML=r.join("");
@@ -721,6 +724,7 @@ async function upd(el){
   if(f==="bdm")body.region=EXP[i].region;
   await sbPatch("expansion_pairs","id=eq."+id,body);
   if(sv){sv.textContent="✓";sv.style.color="var(--g)";setTimeout(function(){sv.textContent=""},2000)}
+  _userEdited=true;
   var ne=document.getElementById("ne-note");
   if(ne){ne.textContent="✓ Saved — visible to everyone.";ne.style.color="var(--g)"}
   renderAll();
@@ -904,6 +908,9 @@ function renderAll(){
 // ── Init: render immediately, then sync from Supabase ─────────────────────────
 renderAll();
 
+// Track whether user has made any edits this session
+var _userEdited=false;
+
 (async function(){
   var badge=document.getElementById("lv-badge");
   try{
@@ -912,9 +919,16 @@ renderAll();
       sbGet("expansion_pairs","order=id.asc&limit=200")
     ]);
     var acts=results[0],prs=results[1];
-    if(Array.isArray(acts)&&acts.length)acts.forEach(function(r){if(r.month&&r.km_value>0)KMS[r.month]=+r.km_value});
-    if(Array.isArray(prs)&&prs.length){EXP=prs;if(badge)badge.textContent="Live · Supabase"}
-    else if(badge)badge.textContent="Live · cached";
+    // Always update KM actuals from DB
+    if(Array.isArray(acts)&&acts.length)
+      acts.forEach(function(r){if(r.month&&r.km_value>0)KMS[r.month]=+r.km_value});
+    // Only overwrite EXP if user hasn't made any edits this session
+    if(!_userEdited&&Array.isArray(prs)&&prs.length){
+      EXP=prs;
+      if(badge)badge.textContent="Live · Supabase";
+    } else if(badge){
+      badge.textContent=_userEdited?"Live · Supabase (edited)":"Live · cached";
+    }
     renderAll();
   }catch(e){
     console.warn("Supabase:",e.message);
