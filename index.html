@@ -524,19 +524,23 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const os=M.map(m=>kOS[m]||0),to_=M.map(m=>to[m]||0);
   const sk=M.map(m=>sm[m]||0),pk=M.map(m=>pm[m]||0);
   const bd=M.map(m=>BUD[m]),fc2=M.map(m=>fc[m]||0);
-  // Existing on-sale = vehicle CSV fleet + cumulative new signed buses that have gone live
-  var _cumSigned=0;
-  const bx=M.map(m=>{_cumSigned+=ns[m]||0;return (BUS0[m]||0)+_cumSigned});
-  const bns=M.map(m=>ns[m]||0),bnp=M.map(m=>np[m]||0);
+  // All bus rows are CUMULATIVE — buses stay on road once live
+  // bns/bnp = incremental new buses per month (from busCounts)
+  // Make cumulative: each month = running total of buses live so far
+  var _cumS=0,_cumP=0;
+  const bns=M.map(m=>{_cumS+=ns[m]||0;return _cumS});
+  const bnp=M.map(m=>{_cumP+=np[m]||0;return _cumP});
+  // Existing on-sale = vehicle CSV fleet + cumulative new signed
+  const bx=M.map((m,i)=>(BUS0[m]||0)+bns[i]);
   const tOS=os.reduce((a,b)=>a+b,0);
   const tTO=to_.reduce((a,b)=>a+b,0);
   const tNS=sk.reduce((a,b)=>a+b,0);
   const tNP=pk.reduce((a,b)=>a+b,0);
   const tBD=bd.reduce((a,b)=>a+b,0);
   const tFC=fc2.reduce((a,b)=>a+b,0);
-  // FY Total for buses = total buses going live across all months
-  const fNS=bns.reduce(function(a,b){return a+b},0);
-  const fNP=bnp.reduce(function(a,b){return a+b},0);
+  // FY Total for buses = December value = total buses live at year end
+  const fNS=bns[bns.length-1]||0;
+  const fNP=bnp[bnp.length-1]||0;
   const pt=function(p){var c=p>=100?"pg":p>=80?"pa":"pr";return'<td class="'+c+'">'+p+'%</td>'};
   const nt=function(v){return"<td>"+(v>0?fmtN(Math.round(v)):"-")+"</td>"};
   const it=function(v){return"<td>"+(v>0?v:"-")+"</td>"};
