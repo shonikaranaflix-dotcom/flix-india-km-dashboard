@@ -171,7 +171,7 @@ input[type=file]{display:none}
     </div>
     <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM · existing on-sale KM = actuals</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM (rows ④⑤) · existing on-sale KM = actuals</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -416,7 +416,7 @@ function kmOnSale(){
   EXP.forEach(r=>{
     if(!passed(r.go_live))return;
     const pb=getPb(r);if(!pb)return;
-    const pk=pb*2*(1-CANCEL_RATE); // apply 8% cancellation rate
+    const pk=pb*2; // raw KM — cancellation shown separately
     const sw=goLiveWeek(r.go_live);
     WEEKS.forEach(w=>{if(w>=sw)t[w2m(w)]=(t[w2m(w)]||0)+pk});
   });
@@ -430,7 +430,7 @@ function newKM(){
   EXP.forEach(r=>{
     if(passed(r.go_live))return;
     const pb=getPb(r);if(!pb)return;
-    const pk=pb*2*(1-CANCEL_RATE); // apply 8% cancellation rate
+    const pk=pb*2; // raw KM — cancellation shown separately
     const startW=goLiveWeek(r.go_live);
     WEEKS.forEach(w=>{
       if(w<startW)return;
@@ -583,8 +583,9 @@ function bKPI(kOS,sm,pm,fc){
   sk("k2",(tTO/1e6).toFixed(1)+'<span>M KM</span>');
   sk("k3",(tS/1e6).toFixed(1)+'<span>M KM</span>');st("k3d",sig+" signed pairs · "+sig*2+" buses");
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
-  sk("k5",(tFC/1e6).toFixed(1)+'<span>M KM</span>');
-  var fd=pct(tFC,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
+  var tFC_net=Object.values(fc).reduce((a,b)=>a+b,0)*(1-CANCEL_RATE);
+  sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
+  var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
 }
 
 // ── Region table ──────────────────────────────────────────────────────────────
