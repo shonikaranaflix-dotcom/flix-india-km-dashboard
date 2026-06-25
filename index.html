@@ -380,18 +380,36 @@ function kmOnSale(){
   EXP.forEach(r=>{
     if(!r.pb||!passed(r.go_live))return;
     const pk=r.pb*2;
-    WEEKS.forEach(w=>{if(w>=33)t[w2m(w)]=(t[w2m(w)]||0)+pk});
+    const startWeek=goLiveWeek(r.go_live||"2026-08-15");
+    WEEKS.forEach(w=>{if(w>=startWeek)t[w2m(w)]=(t[w2m(w)]||0)+pk});
   });
   return t;
 }
+// Week-to-date mapping (ISO week number → approximate date for 2026)
+// W1=Jan5, W5=Feb2, W25=Jun15, W27=Jul5, W31=Aug3, W33=Aug17...
+function goLiveWeek(dateStr){
+  // Return the first WEEK number that is on or after the go-live date
+  try{
+    const d=new Date(dateStr);
+    const year=d.getFullYear();
+    const jan1=new Date(year,0,1);
+    // ISO week: days since Jan 1 / 7 + 1
+    const weekNum=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+    // Find first week in our WEEKS array >= weekNum
+    return WEEKS.find(w=>w>=weekNum)||WEEKS[WEEKS.length-1];
+  }catch{return 33}
+}
+
 function newKM(){
   const sm={},pm={},sw={},pw={};
   M.forEach(m=>{sm[m]=0;pm[m]=0});WEEKS.forEach(w=>{sw[w]=0;pw[w]=0});
   EXP.forEach(r=>{
     if(!r.pb||passed(r.go_live))return;
     const pk=r.pb*2;
+    const startWeek=goLiveWeek(r.go_live||"2026-08-15");
     WEEKS.forEach(w=>{
-      if(w<33)return;const m=w2m(w);
+      if(w<startWeek)return;
+      const m=w2m(w);
       if(r.signed){sm[m]+=pk;sw[w]+=pk}else{pm[m]+=pk;pw[w]+=pk}
     });
   });
