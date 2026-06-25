@@ -380,36 +380,18 @@ function kmOnSale(){
   EXP.forEach(r=>{
     if(!r.pb||!passed(r.go_live))return;
     const pk=r.pb*2;
-    const startWeek=goLiveWeek(r.go_live||"2026-08-15");
-    WEEKS.forEach(w=>{if(w>=startWeek)t[w2m(w)]=(t[w2m(w)]||0)+pk});
+    WEEKS.forEach(w=>{if(w>=33)t[w2m(w)]=(t[w2m(w)]||0)+pk});
   });
   return t;
 }
-// Week-to-date mapping (ISO week number → approximate date for 2026)
-// W1=Jan5, W5=Feb2, W25=Jun15, W27=Jul5, W31=Aug3, W33=Aug17...
-function goLiveWeek(dateStr){
-  // Return the first WEEK number that is on or after the go-live date
-  try{
-    const d=new Date(dateStr);
-    const year=d.getFullYear();
-    const jan1=new Date(year,0,1);
-    // ISO week: days since Jan 1 / 7 + 1
-    const weekNum=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
-    // Find first week in our WEEKS array >= weekNum
-    return WEEKS.find(w=>w>=weekNum)||WEEKS[WEEKS.length-1];
-  }catch{return 33}
-}
-
 function newKM(){
   const sm={},pm={},sw={},pw={};
   M.forEach(m=>{sm[m]=0;pm[m]=0});WEEKS.forEach(w=>{sw[w]=0;pw[w]=0});
   EXP.forEach(r=>{
     if(!r.pb||passed(r.go_live))return;
     const pk=r.pb*2;
-    const startWeek=goLiveWeek(r.go_live||"2026-08-15");
     WEEKS.forEach(w=>{
-      if(w<startWeek)return;
-      const m=w2m(w);
+      if(w<33)return;const m=w2m(w);
       if(r.signed){sm[m]+=pk;sw[w]+=pk}else{pm[m]+=pk;pw[w]+=pk}
     });
   });
@@ -608,25 +590,29 @@ function bExp(){
     return mf&&ms&&(neBDM==="all"||r.bdm===neBDM);
   });
   const lv='<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(115,215,0,.15);color:var(--g)">⚡live</span>';
-  el.innerHTML=flt.map(r=>{
+  el.innerHTML=flt.map(function(r){
     const gl=r.go_live||"2026-08-15",ok=passed(gl);
     const st=r.signed?'<span class="sp sp-s">✅</span>':'<span class="sp sp-p">🔍</span>';
-    return'<tr data-id="'+r.id+'" style="'+(ok?"background:rgba(115,215,0,.03)":"")+'"><td style="font-weight:500;color:'+(ok?"var(--g)":"var(--tx)")+';font-size:11px">'+r.route+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--mt)">'+(r.lc||"—")+'</td>'
-      +'<td style="font-size:10px;color:var(--mt);white-space:nowrap">'+r.pair+'</td>'
-      +'<td><input class="ipt" value="'+(r.bp||"")+'" data-id="'+r.id+'" data-f="bp" onchange="upd(this)" placeholder="BP name…" style="min-width:120px;font-size:10px;color:'+(r.signed?"var(--g)":"var(--mt)")+'"></td>'
-      +'<td><input class="ipt" type="date" value="'+gl+'" data-id="'+r.id+'" data-f="go_live" onchange="upd(this)" style="width:130px;'+(ok?"border-color:rgba(115,215,0,.4);color:var(--g)":"")+'">'+( ok?lv:"")+'</td>'
-      +'<td><input class="ipt" type="number" min="0" step="100" value="'+r.pb+'" data-id="'+r.id+'" data-f="pb" onchange="upd(this)" style="width:80px;text-align:right"></td>'
-      +'<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>'
-      +'<td style="font-size:10px;color:var(--mt)">'+r.bdm+'</td>'
-      +'<td>'+st+'</td>'
-      '<td><span id="sv'+r.id+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+r.id+')">✕</button></td></tr>';
+    const rid=r.id;
+    var row='<tr data-id="'+rid+'" style="'+(ok?"background:rgba(115,215,0,.03)":"")+'">'; 
+    row+='<td><input class="ipt" value="'+r.route+'" data-id="'+rid+'" data-f="route" onchange="upd(this)" style="min-width:130px;font-weight:500;color:'+(ok?"var(--g)":"var(--tx)")+'"></td>';
+    row+='<td><input class="ipt" value="'+(r.lc||"")+'" data-id="'+rid+'" data-f="lc" onchange="upd(this)" style="width:90px;font-family:monospace;font-size:10px;color:var(--mt)"></td>';
+    row+='<td><input class="ipt" value="'+(r.pair||"")+'" data-id="'+rid+'" data-f="pair" onchange="upd(this)" style="width:65px;font-size:10px"></td>';
+    row+='<td><input class="ipt" value="'+(r.bp||"")+'" data-id="'+rid+'" data-f="bp" onchange="upd(this)" placeholder="BP name" style="min-width:120px;font-size:10px;color:'+(r.signed?"var(--g)":"var(--mt)")+'"></td>';
+    row+='<td><input class="ipt" type="date" value="'+gl+'" data-id="'+rid+'" data-f="go_live" onchange="upd(this)" style="width:130px;'+(ok?"border-color:rgba(115,215,0,.4);color:var(--g)":"")+'">'+( ok?lv:"")+'</td>';
+    row+='<td><input class="ipt" type="number" min="0" step="100" value="'+r.pb+'" data-id="'+rid+'" data-f="pb" onchange="upd(this)" style="width:80px;text-align:right"></td>';
+    row+='<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>';
+    row+='<td><select class="ipt" data-id="'+rid+'" data-f="bdm" onchange="upd(this)" style="font-size:10px;width:75px"><option'+(r.bdm==="Aakash"?" selected":"")+'>Aakash</option><option'+(r.bdm==="Syed"?" selected":"")+'>Syed</option></select></td>';
+    row+='<td>'+st+'</td>';
+    row+='<td><span id="sv'+rid+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+rid+')">✕</button></td>';
+    row+='</tr>';
+    return row;
   }).join("");
   const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length,lvc=EXP.filter(r=>passed(r.go_live)).length;
   function st2(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
   st2("es1",sig+" pairs · "+sig*2+" buses");st2("es2",pip+" pairs · "+pip*2+" buses");
   st2("es3",sig*2+" signed buses · "+lvc+" pairs live");
-  st2("ne-ct",EXP.filter(r=>r.signed).map(r=>r.route).filter((v,i,a)=>a.indexOf(v)===i).length+" signed · "+EXP.filter(r=>!r.signed).map(r=>r.route).filter((v,i,a)=>a.indexOf(v)===i).length+" pipeline routes");
+  st2("ne-ct",EXP.filter(r=>r.signed).map(r=>r.route).filter(function(v,i,a){return a.indexOf(v)===i}).length+" signed · "+EXP.filter(r=>!r.signed).map(r=>r.route).filter(function(v,i,a){return a.indexOf(v)===i}).length+" pipeline routes");
 }
 
 async function upd(el){
@@ -646,15 +632,12 @@ async function upd(el){
 
 async function delPair(id){
   if(!confirm("Delete this pair? This cannot be undone."))return;
-  const i=EXP.findIndex(r=>r.id===id);
-  if(i<0)return;
+  const i=EXP.findIndex(r=>r.id===id);if(i<0)return;
   EXP.splice(i,1);
-  try{
-    await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{method:"DELETE",headers:sbH});
-  }catch(e){}
+  try{await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{method:"DELETE",headers:sbH})}catch(e){}
   renderAll();
   const ne=document.getElementById("ne-note");
-  if(ne){ne.textContent="Pair deleted — removed for everyone.";ne.style.color="var(--rd)";}
+  if(ne){ne.textContent="Pair deleted.";ne.style.color="var(--rd)";}
 }
 
 async function addNewLine(){
@@ -783,6 +766,7 @@ renderAll();
     if(badge)badge.textContent="Live · cached";
   }
 })();
+
 
 </script>
 </body>
