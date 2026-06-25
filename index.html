@@ -591,7 +591,10 @@ function bKPI(kOS,sm,pm,fc){
   sk("k2",(tTO/1e6).toFixed(1)+'<span>M KM</span>');
   sk("k3",(tS/1e6).toFixed(1)+'<span>M KM</span>');st("k3d",sig+" signed pairs · "+sig*2+" buses");
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
-  var tFC_net=Object.values(fc).reduce((a,b)=>a+b,0)*(1-CANCEL_RATE);
+  // Net forecast = raw forecast - 8% of new go-live KM only (same as table)
+  var tRAW_FC=Object.values(fc).reduce((a,b)=>a+b,0);
+  var tNEW_KM=Object.values(sm).reduce((a,b)=>a+b,0)+Object.values(pm).reduce((a,b)=>a+b,0);
+  var tFC_net=tRAW_FC-Math.round(tNEW_KM*CANCEL_RATE);
   sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
 }
