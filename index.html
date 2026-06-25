@@ -620,8 +620,7 @@ function bExp(){
       +'<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>'
       +'<td style="font-size:10px;color:var(--mt)">'+r.bdm+'</td>'
       +'<td>'+st+'</td>'
-      +'<td style="white-space:nowrap"><span id="sv'+r.id+'" style="font-size:9px"></span>'
-      +' <button onclick="delPair('+r.id+')" title="Delete pair" style="background:transparent;border:none;color:var(--mt2);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px" onmouseover="this.style.color='#f85149'" onmouseout="this.style.color='var(--mt2)'">✕</button></td></tr>';
+      '<td><span id="sv'+r.id+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+r.id+')">✕</button></td></tr>';
   }).join("");
   const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length,lvc=EXP.filter(r=>passed(r.go_live)).length;
   function st2(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
