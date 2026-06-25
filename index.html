@@ -524,7 +524,10 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const os=M.map(m=>kOS[m]||0),to_=M.map(m=>to[m]||0);
   const sk=M.map(m=>sm[m]||0),pk=M.map(m=>pm[m]||0);
   const bd=M.map(m=>BUD[m]),fc2=M.map(m=>fc[m]||0);
-  const bx=M.map(m=>BUS0[m]||0),bns=M.map(m=>ns[m]||0),bnp=M.map(m=>np[m]||0);
+  // Existing on-sale = vehicle CSV fleet + cumulative new signed buses that have gone live
+  var _cumSigned=0;
+  const bx=M.map(m=>{_cumSigned+=ns[m]||0;return (BUS0[m]||0)+_cumSigned});
+  const bns=M.map(m=>ns[m]||0),bnp=M.map(m=>np[m]||0);
   const tOS=os.reduce((a,b)=>a+b,0);
   const tTO=to_.reduce((a,b)=>a+b,0);
   const tNS=sk.reduce((a,b)=>a+b,0);
@@ -549,7 +552,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-vs"><td>→ On Sale vs Budget %</td>'+M.map(function(_,i){return pt(pct(os[i],bd[i]))}).join("")+pT(pct(tOS,tBD))+"</tr>");
   r.push('<tr class="row-div"><td>④ New Lines — Signed KM (future go-lives)</td>'+sk.map(nt).join("")+nT(tNS)+"</tr>");
   r.push('<tr class="row-sub"><td>⑤ New Lines — Pipeline KM (future go-lives)</td>'+pk.map(nt).join("")+nT(tNP)+"</tr>");
-  r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class="tot-col">—</td>'+"</tr>");
+  r.push('<tr class="row-div"><td>⑥ Buses — existing on-sale</td>'+bx.map(it).join("")+'<td class=\"tot-col\">'+bx[bx.length-1]+'</td>'+"</tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS:"—")+"</td></tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP:"—")+"</td></tr>");
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST (①+②+④+⑤) · 8% cancellation applied to new lines</td>'+fc2.map(nt).join("")+nT(tFC)+"</tr>");
