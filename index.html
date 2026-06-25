@@ -620,7 +620,8 @@ function bExp(){
       +'<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>'
       +'<td style="font-size:10px;color:var(--mt)">'+r.bdm+'</td>'
       +'<td>'+st+'</td>'
-      +'<td><span id="sv'+r.id+'" style="font-size:9px;white-space:nowrap"></span></td></tr>';
+      +'<td style="white-space:nowrap"><span id="sv'+r.id+'" style="font-size:9px"></span>'
+      +' <button onclick="delPair('+r.id+')" title="Delete pair" style="background:transparent;border:none;color:var(--mt2);cursor:pointer;font-size:13px;padding:1px 4px;border-radius:3px" onmouseover="this.style.color='#f85149'" onmouseout="this.style.color='var(--mt2)'">✕</button></td></tr>';
   }).join("");
   const sig=EXP.filter(r=>r.signed).length,pip=EXP.filter(r=>!r.signed).length,lvc=EXP.filter(r=>passed(r.go_live)).length;
   function st2(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
@@ -642,6 +643,19 @@ async function upd(el){
   const ne=document.getElementById("ne-note");
   if(ne){ne.textContent="✓ Saved — visible to everyone.";ne.style.color="var(--g)"}
   renderAll();
+}
+
+async function delPair(id){
+  if(!confirm("Delete this pair? This cannot be undone."))return;
+  const i=EXP.findIndex(r=>r.id===id);
+  if(i<0)return;
+  EXP.splice(i,1);
+  try{
+    await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{method:"DELETE",headers:sbH});
+  }catch(e){}
+  renderAll();
+  const ne=document.getElementById("ne-note");
+  if(ne){ne.textContent="Pair deleted — removed for everyone.";ne.style.color="var(--rd)";}
 }
 
 async function addNewLine(){
