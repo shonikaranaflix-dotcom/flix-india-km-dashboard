@@ -524,14 +524,15 @@ function bLV(kOS,sm,pm,fc,ns,np){
   const os=M.map(m=>kOS[m]||0),to_=M.map(m=>to[m]||0);
   const sk=M.map(m=>sm[m]||0),pk=M.map(m=>pm[m]||0);
   const bd=M.map(m=>BUD[m]),fc2=M.map(m=>fc[m]||0);
-  // All bus rows CUMULATIVE — buses stay on road once live
-  // busCounts() returns INCREMENTAL new buses per month (already ×2 per pair)
-  // Accumulate to get running totals
+  // All bus rows CUMULATIVE — once buses go live they stay on road
+  // busCounts() gives INCREMENTAL new buses per month (pair×2)
+  // Accumulate to running totals
   var _cumS=0,_cumP=0;
   const bns=M.map(m=>{_cumS+=ns[m]||0;return _cumS}); // cumulative signed buses (pair×2)
   const bnp=M.map(m=>{_cumP+=np[m]||0;return _cumP}); // cumulative pipeline buses (pair×2)
-  // Existing on-sale = vehicle CSV fleet only (separate row from new signed/pipeline)
-  const bx=M.map(m=>BUS0[m]||0);
+  // Existing on-sale = total fleet running = vehicle CSV + all signed buses live so far
+  // e.g. Aug: 348 existing + 100 new signed = 448; Sep: still 448 (same fleet)
+  const bx=M.map((m,i)=>(BUS0[m]||0)+bns[i]);
   const tOS=os.reduce((a,b)=>a+b,0);
   const tTO=to_.reduce((a,b)=>a+b,0);
   const tNS=sk.reduce((a,b)=>a+b,0);
