@@ -171,7 +171,7 @@ input[type=file]{display:none}
     </div>
     <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation applied to new go-live KM (rows ④⑤) · existing on-sale KM = actuals</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation on forecast KM (Jul–Dec) · Jan–Jun = actuals</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -562,7 +562,13 @@ function bLV(kOS,sm,pm,fc,ns,np){
   r.push('<tr class="row-sub"><td>⑥ Buses — new signed (Pair×2, from go-live)</td>'+bns.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNS?fNS:"—")+"</td></tr>");
   r.push('<tr class="row-sub"><td>⑥ Buses — pipeline (Pair×2, from go-live)</td>'+bnp.map(it).join("")+'<td class="tot-col" title="Peak = Dec value">'+(fNP?fNP:"—")+"</td></tr>");
   // Cancellation row: 8% of (signed + pipeline) raw KM
-  var cancel_km=M.map(function(_,i){return -Math.round((sk[i]+pk[i])*CANCEL_RATE)});
+  // Cancellation applies to ALL forecast KM from Jul-Dec:
+  // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
+  var FORECAST_IDX=6; // Jul is index 6 — actuals are Jan-Jun (idx 0-5)
+  var cancel_km=M.map(function(_,i){
+    if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
+    return -Math.round((os[i]+to_[i]+sk[i]+pk[i])*CANCEL_RATE);
+  });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
   r.push('<tr class="row-sub"><td style="color:var(--rd)">→ 8% Cancellation on new go-live KM</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
@@ -591,10 +597,10 @@ function bKPI(kOS,sm,pm,fc){
   sk("k2",(tTO/1e6).toFixed(1)+'<span>M KM</span>');
   sk("k3",(tS/1e6).toFixed(1)+'<span>M KM</span>');st("k3d",sig+" signed pairs · "+sig*2+" buses");
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
-  // Net forecast = raw forecast - 8% of new go-live KM only (same as table)
+  // Net forecast = raw total - 8% of all Jul-Dec forecast KM
   var tRAW_FC=Object.values(fc).reduce((a,b)=>a+b,0);
-  var tNEW_KM=Object.values(sm).reduce((a,b)=>a+b,0)+Object.values(pm).reduce((a,b)=>a+b,0);
-  var tFC_net=tRAW_FC-Math.round(tNEW_KM*CANCEL_RATE);
+  var tFORE_KM=M.reduce(function(a,m,i){return i>=6?a+(fc[m]||0):a},0); // Jul-Dec only
+  var tFC_net=tRAW_FC-Math.round(tFORE_KM*CANCEL_RATE);
   sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
 }
