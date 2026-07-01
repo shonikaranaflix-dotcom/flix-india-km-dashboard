@@ -180,8 +180,9 @@ input[type=file]{display:none}
     <div class="ct">
       <span>Leadership View — Monthly KM 2026</span>
       <span style="font-size:10px;padding:3px 9px;border-radius:999px;background:var(--gd);color:var(--g);border:1px solid rgba(115,215,0,.25)" id="lv-badge">Live · auto-updates</span>
+      <button onclick="dlLeadership()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer;margin-left:8px">⬇ Excel</button>
     </div>
-    <div style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
+    <div id="lv-wrap" style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
       <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation on forecast KM (Jul–Dec) · Jan–Jun = actuals</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
@@ -290,7 +291,7 @@ input[type=file]{display:none}
       </div>
     </div>
     <div style="overflow-x:auto">
-      <table class="ne-tbl" id="rt-tbl">
+      <div id="ne-wrap"><table class="ne-tbl" id="rt-tbl">
         <thead><tr>
           <th>Route</th><th>Region</th><th>BDM</th>
           <th style="text-align:center">Target pairs</th>
@@ -312,6 +313,7 @@ input[type=file]{display:none}
         <button class="add-btn" onclick="addNewLine()">＋ Add pair</button>
         <label class="add-btn" for="fi-bulk-exp" style="cursor:pointer">⬆ Bulk upload</label>
         <input type="file" id="fi-bulk-exp" accept=".xlsx,.xls" style="display:none">
+        <button class="add-btn" onclick="dlExpEditor()" style="cursor:pointer">⬇ Download</button>
         <label class="add-btn" for="fi-golive" style="cursor:pointer;border-color:rgba(56,139,253,.3);color:var(--bl)">📅 Go-live dates</label>
         <input type="file" id="fi-golive" accept=".xlsx,.xls,.csv" style="display:none">
         <button class="svb" onclick="recalc()">Recalculate ↻</button>
@@ -326,7 +328,7 @@ input[type=file]{display:none}
       <input class="srch" placeholder="Search route, line or pair…" id="ne-sr">
     </div>
     <div class="ts">
-      <table class="ne-tbl">
+      <div id="ne-wrap"><table class="ne-tbl">
         <thead><tr>
           <th>Route</th><th>Line Code</th><th>Pair</th><th>BP Name</th>
           <th>Go-live Date</th>
@@ -358,7 +360,8 @@ input[type=file]{display:none}
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2026</div>
         <div style="font-size:18px;font-weight:700;color:var(--tx)">Route-level Signing Progress</div>
       </div>
-      <div style="display:flex;gap:6px">
+      <div style="display:flex;gap:6px;align-items:center">
+        <button onclick="dlExpPlan()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
         <button class="plan-bdm active" data-bdm="all" onclick="setPlanBDM('all',this)">All</button>
         <button class="plan-bdm" data-bdm="Aakash" onclick="setPlanBDM('Aakash',this)">Aakash</button>
         <button class="plan-bdm" data-bdm="Syed" onclick="setPlanBDM('Syed',this)">Syed</button>
@@ -366,7 +369,7 @@ input[type=file]{display:none}
     </div>
     <div id="plan-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
     <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <div id="plan-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:rgba(255,255,255,.03);border-bottom:2px solid var(--br)">
           <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">#</th>
           <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">Route</th>
@@ -1159,84 +1162,67 @@ function bPlan(){
   }).join('');
 }
 
-var planBDM='all';
-function setPlanBDM(bdm,btn){
-  planBDM=bdm;
-  document.querySelectorAll('.plan-bdm').forEach(function(b){b.classList.toggle('active',b.dataset.bdm===bdm)});
-  bPlan();
+
+// ── Download any table as Excel ───────────────────────────────────────────────
+function dlTable(tableId, filename){
+  var table=document.getElementById(tableId);
+  if(!table){console.warn('Table not found:',tableId);return;}
+  // Walk up to find the <table> element if given a tbody/tfoot id
+  var tbl=table.closest?table.closest('table'):null;
+  if(!tbl){
+    // tableId might be the table itself or a wrapper
+    tbl=table.tagName==='TABLE'?table:table.querySelector('table');
+  }
+  if(!tbl){console.warn('No <table> found for',tableId);return;}
+  var rows=[];
+  // Headers from thead
+  var thead=tbl.querySelector('thead');
+  if(thead){
+    var hrow=[];
+    thead.querySelectorAll('th').forEach(function(th){hrow.push(th.innerText||th.textContent||'')});
+    if(hrow.length)rows.push(hrow);
+  }
+  // Data rows from tbody
+  var tbody=tbl.querySelector('tbody');
+  if(tbody){
+    tbody.querySelectorAll('tr').forEach(function(tr){
+      var row=[];
+      tr.querySelectorAll('td').forEach(function(td){
+        // Get text, skip progress bar cells (only contain divs)
+        var txt=td.innerText||td.textContent||'';
+        // Clean up: remove progress bar visual characters
+        txt=txt.replace(/[█░]/g,'').trim();
+        row.push(txt);
+      });
+      if(row.some(function(c){return c.trim()!==''}))rows.push(row);
+    });
+  }
+  // Totals from tfoot
+  var tfoot=tbl.querySelector('tfoot');
+  if(tfoot){
+    tfoot.querySelectorAll('tr').forEach(function(tr){
+      var row=[];
+      tr.querySelectorAll('td,th').forEach(function(td){
+        row.push((td.innerText||td.textContent||'').trim());
+      });
+      if(row.some(function(c){return c!==''}))rows.push(row);
+    });
+  }
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  // Auto column widths
+  var colW=[];
+  rows.forEach(function(r){r.forEach(function(c,i){colW[i]=Math.max(colW[i]||8,String(c).length+2)})});
+  ws['!cols']=colW.map(function(w){return{wch:Math.min(w,40)}});
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Data');
+  XLSX.writeFile(wb,(filename||'table')+'.xlsx');
 }
-function bPlan(){
-  var el=document.getElementById('plan-bd');
-  var totEl=document.getElementById('plan-tot');
-  var sumEl=document.getElementById('plan-summary');
-  if(!el)return;
-  var rMap={},rOrder={North:0,West:1,South:2};
-  EXP.forEach(function(r){
-    if(planBDM!=='all'&&r.bdm!==planBDM)return;
-    var rt=r.route;
-    if(!rMap[rt])rMap[rt]={total:0,signed:0,pipeline:0,live:0,buses:0,bdm:r.bdm,region:r.region||'',gls:[]};
-    rMap[rt].total++;
-    if(r.signed){rMap[rt].signed++;rMap[rt].buses+=2;}else rMap[rt].pipeline++;
-    if(passed(r.go_live))rMap[rt].live++;
-    if(r.go_live&&rMap[rt].gls.indexOf(r.go_live)<0)rMap[rt].gls.push(r.go_live);
-  });
-  var sorted=Object.entries(rMap).sort(function(a,b){
-    var d=(rOrder[a[1].region]||0)-(rOrder[b[1].region]||0);
-    return d||a[0].localeCompare(b[0]);
-  });
-  var rC={North:'#388bfd',West:'#a371f7',South:'#73D700'};
-  var tots={total:0,signed:0,pipeline:0,buses:0};
-  el.innerHTML=sorted.map(function(entry,idx){
-    var rt=entry[0],i=entry[1];
-    var p=i.total>0?Math.round(i.signed/i.total*100):0;
-    var cl=p===100?'#73D700':p>=50?'#f0b429':'#f85149';
-    var rc=rC[i.region]||'#7d8590';
-    var gl=i.gls.sort()[0]||'';
-    var glLabel=gl?gl.slice(5,7)+'/'+gl.slice(8,10)+'/'+gl.slice(0,4):'—';
-    tots.total+=i.total;tots.signed+=i.signed;tots.pipeline+=i.pipeline;tots.buses+=i.buses;
-    var liveTag=i.live>0?('<span style="font-size:9px;color:#73D700;margin-left:4px">⚡'+i.live+'</span>'):'';
-    return '<tr>'
-      +'<td style="color:#7d8590;font-size:10px">'+(idx+1)+'</td>'
-      +'<td style="font-weight:600;color:var(--tx);white-space:nowrap">'+rt+liveTag+'</td>'
-      +'<td><span style="font-size:9px;font-weight:600;padding:2px 7px;border-radius:999px;background:'+rc+'22;color:'+rc+';border:1px solid '+rc+'44">'+i.region+'</span></td>'
-      +'<td style="font-size:11px;color:var(--mt)">'+i.bdm+'</td>'
-      +'<td style="text-align:center;font-weight:700">'+i.total+'</td>'
-      +'<td style="text-align:center;font-weight:700;color:#73D700">'+i.signed+'</td>'
-      +'<td style="text-align:center;color:#f0b429">'+(i.pipeline||'—')+'</td>'
-      +'<td style="text-align:center;color:var(--mt)">'+i.buses+'</td>'
-      +'<td style="text-align:center;font-size:10px;color:var(--mt);white-space:nowrap">'+glLabel+'</td>'
-      +'<td style="text-align:center;font-weight:700;color:'+cl+'">'+p+'%</td>'
-      +'<td><div class="pbar"><div class="pbar-fill" style="width:'+p+'%;background:'+cl+'"></div></div></td>'
-      +'</tr>';
-  }).join('');
-  var tp=tots.total>0?Math.round(tots.signed/tots.total*100):0;
-  var tcl=tp===100?'#73D700':tp>=50?'#f0b429':'#f85149';
-  totEl.innerHTML='<td style="padding:9px 14px"></td>'
-    +'<td style="padding:9px 14px;color:var(--tx)">TOTAL — '+sorted.length+' routes</td>'
-    +'<td style="padding:9px 14px"></td><td style="padding:9px 14px"></td>'
-    +'<td style="padding:9px 14px;text-align:center">'+tots.total+'</td>'
-    +'<td style="padding:9px 14px;text-align:center;color:#73D700">'+tots.signed+'</td>'
-    +'<td style="padding:9px 14px;text-align:center;color:#f0b429">'+tots.pipeline+'</td>'
-    +'<td style="padding:9px 14px;text-align:center">'+tots.buses+'</td>'
-    +'<td style="padding:9px 14px"></td>'
-    +'<td style="padding:9px 14px;text-align:center;font-weight:700;color:'+tcl+'">'+tp+'%</td>'
-    +'<td style="padding:9px 14px"><div class="pbar"><div class="pbar-fill" style="width:'+tp+'%;background:'+tcl+'"></div></div></td>';
-  var doneRoutes=sorted.filter(function(e){return e[1].signed===e[1].total}).length;
-  sumEl.innerHTML=[
-    {label:'Total Routes',val:sorted.length,sub:'across all regions',c:'var(--tx)'},
-    {label:'Fully Signed',val:doneRoutes,sub:'100% complete',c:'#73D700'},
-    {label:'Target Pairs',val:tots.total,sub:'total pairs',c:'var(--tx)'},
-    {label:'Signed Pairs',val:tots.signed,sub:(tots.signed*2)+' buses contracted',c:'#73D700'},
-    {label:'Pipeline',val:tots.pipeline,sub:(tots.pipeline*2)+' buses in scouting',c:'#f0b429'},
-    {label:'Progress',val:tp+'%',sub:tots.signed+' of '+tots.total+' pairs signed',c:tcl}
-  ].map(function(c){
-    return '<div class="plan-card">'
-      +'<div class="pc-label">'+c.label+'</div>'
-      +'<div class="pc-val" style="color:'+c.c+'">'+c.val+'</div>'
-      +'<div class="pc-sub">'+c.sub+'</div>'
-      +'</div>';
-  }).join('');
-}
+
+// Shorthand download buttons
+function dlLeadership(){dlTable('lv-wrap','Flix_India_KM_Leadership_View_2026');}
+function dlRegion(){dlTable('reg-wrap','Flix_India_Region_Summary_2026');}
+function dlExpPlan(){dlTable('plan-wrap','Flix_India_Expansion_Plan_2026');}
+function dlExpEditor(){dlTable('ne-wrap','Flix_India_Expansion_Pairs_2026');}
 
 </script>
 </body>
