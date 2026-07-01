@@ -413,12 +413,20 @@ function toOpen(){
 // Passed go-lives → KM moves into on-sale row automatically
 function kmOnSale(){
   const t={};M.forEach(m=>t[m]=KMS[m]||0);
+  // Jan-Jun are closed actuals — new line KM already included in actuals
+  // Only add passed go-live KM for Jul-Dec (future months where actuals = 0)
+  const FORECAST_START_IDX=6; // Jul = index 6
   EXP.forEach(r=>{
     if(!passed(r.go_live))return;
     const pb=getPb(r);if(!pb)return;
-    const pk=pb*2; // raw KM — cancellation shown separately
+    const pk=pb*2;
     const sw=goLiveWeek(r.go_live);
-    WEEKS.forEach(w=>{if(w>=sw)t[w2m(w)]=(t[w2m(w)]||0)+pk});
+    WEEKS.forEach(w=>{
+      const m=w2m(w);
+      const mi=M.indexOf(m);
+      if(w>=sw&&mi>=FORECAST_START_IDX) // Jul-Dec only
+        t[m]=(t[m]||0)+pk;
+    });
   });
   return t;
 }
