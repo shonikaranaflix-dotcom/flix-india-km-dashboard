@@ -986,10 +986,14 @@ var _userEdited=false;
     ]);
     var acts=results[0],prs=results[1];
     // Always update KM actuals from DB
-    // Update KM actuals from DB — take the HIGHER value
-    // (protects against stale DB overwriting a newer uploaded value)
+    // Update KM from Supabase — Jul-Dec only (forecast months)
+    // Jan-Jun are closed actuals hardcoded in embedded KMS — never overwrite
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun'];
     if(Array.isArray(acts)&&acts.length)
-      acts.forEach(function(r){if(r.month&&r.km_value>0&&+r.km_value>(KMS[r.month]||0))KMS[r.month]=+r.km_value;});
+      acts.forEach(function(r){
+        if(r.month&&r.km_value>0&&!CLOSED_ACTUALS.includes(r.month))
+          KMS[r.month]=+r.km_value;
+      });
     // Only overwrite EXP if user hasn't made any edits this session
     if(!_userEdited&&Array.isArray(prs)&&prs.length){
       EXP=prs;
