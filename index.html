@@ -328,7 +328,7 @@ input[type=file]{display:none}
       <input class="srch" placeholder="Search route, line or pair…" id="ne-sr">
     </div>
     <div class="ts">
-      <div id="ne-wrap"><div id="ne-wrap"><table class="ne-tbl">
+      <table class="ne-tbl">
         <thead><tr>
           <th>Route</th><th>Line Code</th><th>Pair</th><th>BP Name</th>
           <th>Go-live Date</th>
@@ -1222,7 +1222,19 @@ function dlTable(tableId, filename){
 function dlLeadership(){dlTable('lv-wrap','Flix_India_KM_Leadership_View_2026');}
 function dlRegion(){dlTable('reg-wrap','Flix_India_Region_Summary_2026');}
 function dlExpPlan(){dlTable('plan-wrap','Flix_India_Expansion_Plan_2026');}
-function dlExpEditor(){dlTable('ne-wrap','Flix_India_Expansion_Pairs_2026');}
+function dlExpEditor(){
+  var bd=document.getElementById('ne-bd');
+  if(bd){
+    var tbl=bd.closest('table');
+    if(tbl){var rows=[];var thead=tbl.querySelector('thead');
+      if(thead){var hr=[];thead.querySelectorAll('th').forEach(function(th){hr.push((th.innerText||th.textContent||'').trim())});if(hr.length)rows.push(hr);}
+      bd.querySelectorAll('tr').forEach(function(tr){var row=[];tr.querySelectorAll('td').forEach(function(td){var inp=td.querySelector('input,select');row.push(inp?(inp.value||inp.textContent||'').trim():(td.innerText||td.textContent||'').trim());});if(row.some(function(c){return c!==''}))rows.push(row);});
+      var ws=XLSX.utils.aoa_to_sheet(rows);var wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Expansion Pairs');
+      XLSX.writeFile(wb,'Flix_India_Expansion_Pairs_2026.xlsx');
+    }
+  }
+}
 
 </script>
 </body>
