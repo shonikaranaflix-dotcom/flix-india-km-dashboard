@@ -259,43 +259,6 @@ input[type=file]{display:none}
       <div class="leg" style="margin-top:10px;justify-content:center;margin-bottom:0" id="dl"></div>
     </div>
   </div>
-
-  <div id="tab-plan" class="tab-pane" style="padding:20px 0">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2026</div>
-        <div style="font-size:18px;font-weight:700;color:var(--tx)">Route-level Signing Progress</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="plan-bdm active" data-bdm="all" onclick="setPlanBDM('all',this)">All</button>
-        <button class="plan-bdm" data-bdm="Aakash" onclick="setPlanBDM('Aakash',this)">Aakash</button>
-        <button class="plan-bdm" data-bdm="Syed" onclick="setPlanBDM('Syed',this)">Syed</button>
-      </div>
-    </div>
-    <div id="plan-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
-    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <thead>
-          <tr style="background:rgba(255,255,255,.03);border-bottom:2px solid var(--br)">
-            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">#</th>
-            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">Route</th>
-            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">Region</th>
-            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">BDM</th>
-            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Target Pairs</th>
-            <th style="padding:10px 14px;text-align:center;color:#73D700;font-size:10px;text-transform:uppercase">Signed</th>
-            <th style="padding:10px 14px;text-align:center;color:#f0b429;font-size:10px;text-transform:uppercase">Pipeline</th>
-            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Signed Buses</th>
-            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Go-live</th>
-            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">% Done</th>
-            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;min-width:130px">Progress</th>
-          </tr>
-        </thead>
-        <tbody id="plan-bd"></tbody>
-        <tfoot><tr id="plan-tot" style="background:rgba(255,255,255,.04);border-top:2px solid rgba(255,255,255,.15);font-weight:700"></tr></tfoot>
-      </table>
-    </div>
-    <div style="margin-top:10px;font-size:10px;color:var(--mt)">⚡ = already live &nbsp;·&nbsp; Progress = signed / total pairs &nbsp;·&nbsp; Live from Supabase</div>
-  </div>
 </main>
 </div>
 
@@ -388,6 +351,42 @@ input[type=file]{display:none}
   </div>
 </main>
 </div>
+
+  <div id="tab-plan" class="tab-pane" style="padding:20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2026</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Route-level Signing Progress</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="plan-bdm active" data-bdm="all" onclick="setPlanBDM('all',this)">All</button>
+        <button class="plan-bdm" data-bdm="Aakash" onclick="setPlanBDM('Aakash',this)">Aakash</button>
+        <button class="plan-bdm" data-bdm="Syed" onclick="setPlanBDM('Syed',this)">Syed</button>
+      </div>
+    </div>
+    <div id="plan-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:rgba(255,255,255,.03);border-bottom:2px solid var(--br)">
+          <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">#</th>
+          <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">Route</th>
+          <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">Region</th>
+          <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase">BDM</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Pairs</th>
+          <th style="padding:10px 14px;text-align:center;color:#73D700;font-size:10px;text-transform:uppercase">Signed</th>
+          <th style="padding:10px 14px;text-align:center;color:#f0b429;font-size:10px;text-transform:uppercase">Pipeline</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Buses</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">Go-live</th>
+          <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase">% Done</th>
+          <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;min-width:130px">Progress</th>
+        </tr></thead>
+        <tbody id="plan-bd"></tbody>
+        <tfoot><tr id="plan-tot" style="background:rgba(255,255,255,.04);border-top:2px solid rgba(255,255,255,.15);font-weight:700"></tr></tfoot>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--mt)">⚡ = already live &nbsp;·&nbsp; Progress = signed / total pairs</div>
+  </div>
+
 
 <div class="fn">Flix India Business Team · KM Dashboard 2026 · Internal Use Only</div>
 
@@ -1014,7 +1013,7 @@ function switchTab(id,btn){
   document.querySelectorAll(".tab-pane").forEach(function(t){t.classList.remove("active")});
   document.querySelectorAll(".tn").forEach(function(b){b.classList.remove("active")});
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
-
+  if(id==='plan')bPlan();
 }
 function recalc(){renderAll()}
 
@@ -1223,15 +1222,14 @@ function bPlan(){
     +'<td style="padding:9px 14px;text-align:center;font-weight:700;color:'+tcl+'">'+tp+'%</td>'
     +'<td style="padding:9px 14px"><div class="pbar"><div class="pbar-fill" style="width:'+tp+'%;background:'+tcl+'"></div></div></td>';
   var doneRoutes=sorted.filter(function(e){return e[1].signed===e[1].total}).length;
-  var cards=[
+  sumEl.innerHTML=[
     {label:'Total Routes',val:sorted.length,sub:'across all regions',c:'var(--tx)'},
     {label:'Fully Signed',val:doneRoutes,sub:'100% complete',c:'#73D700'},
     {label:'Target Pairs',val:tots.total,sub:'total pairs',c:'var(--tx)'},
-    {label:'Signed Pairs',val:tots.signed,sub:tots.signed*2+' buses contracted',c:'#73D700'},
-    {label:'Pipeline',val:tots.pipeline,sub:tots.pipeline*2+' buses in scouting',c:'#f0b429'},
+    {label:'Signed Pairs',val:tots.signed,sub:(tots.signed*2)+' buses contracted',c:'#73D700'},
+    {label:'Pipeline',val:tots.pipeline,sub:(tots.pipeline*2)+' buses in scouting',c:'#f0b429'},
     {label:'Progress',val:tp+'%',sub:tots.signed+' of '+tots.total+' pairs signed',c:tcl}
-  ];
-  sumEl.innerHTML=cards.map(function(c){
+  ].map(function(c){
     return '<div class="plan-card">'
       +'<div class="pc-label">'+c.label+'</div>'
       +'<div class="pc-val" style="color:'+c.c+'">'+c.val+'</div>'
