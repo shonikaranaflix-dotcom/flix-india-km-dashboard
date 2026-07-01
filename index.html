@@ -114,6 +114,17 @@ input[type=file]{display:none}
 .view-btn.active{background:var(--cd);color:var(--tx);border-color:var(--br2)}
 .prog-bar{height:6px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;min-width:100px}
 .prog-fill{height:100%;border-radius:3px}
+.plan-bdm{font-size:10px;padding:4px 12px;border-radius:999px;border:1px solid var(--br);background:transparent;color:var(--mt);cursor:pointer;transition:all .15s}
+.plan-bdm.active{background:rgba(255,255,255,.08);color:var(--tx);border-color:rgba(255,255,255,.2)}
+#plan-bd tr{border-bottom:1px solid rgba(255,255,255,.04)}
+#plan-bd tr:hover{background:rgba(255,255,255,.03)}
+#plan-bd td{padding:9px 14px;vertical-align:middle}
+.pbar{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;min-width:100px}
+.pbar-fill{height:100%;border-radius:999px;transition:width .3s}
+.plan-card{background:var(--cs);border:1px solid var(--br);border-radius:8px;padding:12px 16px;min-width:130px}
+.plan-card .pc-label{font-size:9px;font-weight:700;letter-spacing:.07em;color:var(--mt);text-transform:uppercase;margin-bottom:4px}
+.plan-card .pc-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace}
+.plan-card .pc-sub{font-size:10px;color:var(--mt);margin-top:2px}
 </style>
 </head>
 <body>
@@ -134,6 +145,7 @@ input[type=file]{display:none}
 <nav class="tab-nav">
   <button class="tn active" onclick="switchTab('dash',this)">📊 Dashboard</button>
   <button class="tn" onclick="switchTab('exp',this)">🚌 Expansion Editor</button>
+        <button class="tn" onclick="switchTab('plan',this)">📋 Expansion Plan</button>
 </nav>
 
 <div class="ub">
@@ -246,6 +258,42 @@ input[type=file]{display:none}
       <div class="cw" style="height:155px"><canvas id="c5"></canvas></div>
       <div class="leg" style="margin-top:10px;justify-content:center;margin-bottom:0" id="dl"></div>
     </div>
+  </div>
+  <div id="tab-plan" class="tab-pane" style="padding:20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2026</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Route-level Signing Progress</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="plan-bdm active" data-bdm="all" onclick="setPlanBDM('all',this)">All</button>
+        <button class="plan-bdm" data-bdm="Aakash" onclick="setPlanBDM('Aakash',this)">Aakash</button>
+        <button class="plan-bdm" data-bdm="Syed" onclick="setPlanBDM('Syed',this)">Syed</button>
+      </div>
+    </div>
+    <div id="plan-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:rgba(255,255,255,.03);border-bottom:2px solid var(--br)">
+            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">#</th>
+            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Route</th>
+            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Region</th>
+            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">BDM</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Target<br>Pairs</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--g);font-size:10px;text-transform:uppercase;letter-spacing:.06em">✅ Signed</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--am);font-size:10px;text-transform:uppercase;letter-spacing:.06em">🔍 Pipeline</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Signed<br>Buses</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">Go-live</th>
+            <th style="padding:10px 14px;text-align:center;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em">% Done</th>
+            <th style="padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.06em;min-width:130px">Progress</th>
+          </tr>
+        </thead>
+        <tbody id="plan-bd"></tbody>
+        <tfoot><tr id="plan-tot" style="background:rgba(255,255,255,.04);border-top:2px solid rgba(255,255,255,.15);font-weight:700;font-size:12px"></tr></tfoot>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--mt)">⚡ = already live &nbsp;·&nbsp; Progress = signed ÷ total target pairs &nbsp;·&nbsp; Live data from Supabase</div>
   </div>
 </main>
 </div>
@@ -965,6 +1013,7 @@ function switchTab(id,btn){
   document.querySelectorAll(".tab-pane").forEach(function(t){t.classList.remove("active")});
   document.querySelectorAll(".tn").forEach(function(b){b.classList.remove("active")});
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
+  if(id==='plan')bPlan();
 }
 function recalc(){renderAll()}
 
@@ -1015,6 +1064,100 @@ var _userEdited=false;
     if(badge)badge.textContent="Live · cached";
   }
 })();
+
+
+// ── Expansion Plan tab ────────────────────────────────────────────────────────
+var planBDM='all';
+
+function setPlanBDM(bdm,btn){
+  planBDM=bdm;
+  document.querySelectorAll('.plan-bdm').forEach(function(b){b.classList.toggle('active',b.dataset.bdm===bdm)});
+  bPlan();
+}
+
+function bPlan(){
+  var el=document.getElementById('plan-bd');
+  var totEl=document.getElementById('plan-tot');
+  var sumEl=document.getElementById('plan-summary');
+  if(!el)return;
+
+  // Build route map from EXP
+  var rMap={};
+  var rOrder={North:0,West:1,South:2};
+  EXP.forEach(function(r){
+    if(planBDM!=='all'&&r.bdm!==planBDM)return;
+    var rt=r.route;
+    if(!rMap[rt])rMap[rt]={total:0,signed:0,pipeline:0,live:0,buses:0,bdm:r.bdm,region:r.region||'',goLives:[]};
+    rMap[rt].total++;
+    if(r.signed){rMap[rt].signed++;rMap[rt].buses+=2;}
+    else rMap[rt].pipeline++;
+    if(passed(r.go_live))rMap[rt].live++;
+    if(r.go_live&&!rMap[rt].goLives.includes(r.go_live))rMap[rt].goLives.push(r.go_live);
+  });
+
+  var sorted=Object.entries(rMap).sort(function(a,b){
+    var d=(rOrder[a[1].region]||0)-(rOrder[b[1].region]||0);
+    return d||a[0].localeCompare(b[0]);
+  });
+
+  var rC={North:'#388bfd',West:'#a371f7',South:'#73D700'};
+  var totals={total:0,signed:0,pipeline:0,buses:0,live:0};
+
+  el.innerHTML=sorted.map(function(entry,idx){
+    var rt=entry[0],i=entry[1];
+    var p=i.total>0?Math.round(i.signed/i.total*100):0;
+    var cl=p===100?'#73D700':p>=50?'#f0b429':'#f85149';
+    var rc=rC[i.region]||'#7d8590';
+    // earliest go-live date for this route
+    var glDates=i.goLives.filter(function(d){return d}).sort();
+    var glLabel=glDates.length?glDates[0].slice(0,10).split('-').slice(1).reverse().join('/'):'—';
+    totals.total+=i.total;totals.signed+=i.signed;totals.pipeline+=i.pipeline;
+    totals.buses+=i.buses;totals.live+=i.live;
+    var liveTag=i.live>0?'<span style="font-size:9px;color:var(--g);margin-left:4px">⚡'+i.live+'</span>':'';
+    return '<tr>'
+      +'<td style="color:var(--mt2);font-size:10px">'+(idx+1)+'</td>'
+      +'<td style="font-weight:600;color:var(--tx);white-space:nowrap">'+rt+liveTag+'</td>'
+      +'<td><span style="font-size:9px;font-weight:600;padding:2px 7px;border-radius:999px;background:'+rc+'22;color:'+rc+';border:1px solid '+rc+'44">'+i.region+'</span></td>'
+      +'<td style="font-size:11px;color:var(--mt)">'+i.bdm+'</td>'
+      +'<td style="text-align:center;font-weight:700;font-family:'DM Mono',monospace">'+i.total+'</td>'
+      +'<td style="text-align:center;font-weight:700;color:var(--g)">'+i.signed+'</td>'
+      +'<td style="text-align:center;color:var(--am)">'+(i.pipeline||'—')+'</td>'
+      +'<td style="text-align:center;font-size:11px;color:var(--mt)">'+i.buses+'</td>'
+      +'<td style="text-align:center;font-size:10px;color:var(--mt);white-space:nowrap">'+glLabel+'</td>'
+      +'<td style="text-align:center;font-weight:700;color:'+cl+'">'+p+'%</td>'
+      +'<td><div class="pbar"><div class="pbar-fill" style="width:'+p+'%;background:'+cl+'"></div></div></td>'
+      +'</tr>';
+  }).join('');
+
+  // Totals row
+  var tp=totals.total>0?Math.round(totals.signed/totals.total*100):0;
+  var tcl=tp===100?'#73D700':tp>=50?'#f0b429':'#f85149';
+  totEl.innerHTML='<td style="padding:9px 14px;color:var(--mt);font-size:10px"></td>'
+    +'<td style="padding:9px 14px;color:var(--tx)">TOTAL ('+sorted.length+' routes)</td>'
+    +'<td style="padding:9px 14px"></td><td style="padding:9px 14px"></td>'
+    +'<td style="padding:9px 14px;text-align:center;font-family:'DM Mono',monospace">'+totals.total+'</td>'
+    +'<td style="padding:9px 14px;text-align:center;color:var(--g)">'+totals.signed+'</td>'
+    +'<td style="padding:9px 14px;text-align:center;color:var(--am)">'+totals.pipeline+'</td>'
+    +'<td style="padding:9px 14px;text-align:center">'+totals.buses+'</td>'
+    +'<td style="padding:9px 14px"></td>'
+    +'<td style="padding:9px 14px;text-align:center;color:'+tcl+'">'+tp+'%</td>'
+    +'<td style="padding:9px 14px"><div class="pbar"><div class="pbar-fill" style="width:'+tp+'%;background:'+tcl+'"></div></div></td>';
+
+  // Summary cards
+  var doneRoutes=sorted.filter(function(e){return e[1].signed===e[1].total}).length;
+  sumEl.innerHTML=[
+    {label:'Total Routes',val:sorted.length,sub:'across all regions',c:'var(--tx)'},
+    {label:'Fully Signed',val:doneRoutes,sub:'100% complete routes',c:'var(--g)'},
+    {label:'Total Pairs',val:totals.total,sub:'target pairs',c:'var(--tx)'},
+    {label:'Signed Pairs',val:totals.signed,sub:totals.signed*2+' buses contracted',c:'var(--g)'},
+    {label:'Pipeline Pairs',val:totals.pipeline,sub:totals.pipeline*2+' buses in scouting',c:'var(--am)'},
+    {label:'Overall Progress',val:tp+'%',sub:totals.signed+' of '+totals.total+' pairs signed',c:tcl},
+  ].map(function(c){
+    return '<div class="plan-card"><div class="pc-label">'+c.label+'</div>'
+      +'<div class="pc-val" style="color:'+c.c+'">'+c.val+'</div>'
+      +'<div class="pc-sub">'+c.sub+'</div></div>';
+  }).join('');
+}
 
 </script>
 </body>
