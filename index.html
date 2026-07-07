@@ -184,7 +184,7 @@ input[type=file]{display:none}
     </div>
     <div id="lv-wrap" style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation on forecast KM (Jul–Dec) · Jan–Jun = actuals</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">⚠ 8% cancellation on forecast KM (Aug–Dec) · Jan–Jun = closed actuals · Jul = live (updates weekly)</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -629,7 +629,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Cancellation row: 8% of (signed + pipeline) raw KM
   // Cancellation applies to ALL forecast KM from Jul-Dec:
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
-  var FORECAST_IDX=6; // Jul is index 6 — actuals are Jan-Jun (idx 0-5)
+  var FORECAST_IDX=7; // Aug is index 7 — actuals are Jan-Jul (idx 0-6)
   var cancel_km=M.map(function(_,i){
     if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
     return -Math.round((os[i]+to_[i]+sk[i]+pk[i])*CANCEL_RATE);
@@ -1054,7 +1054,7 @@ var _userEdited=false;
     // Always update KM actuals from DB
     // Update KM from Supabase — Jul-Dec only (forecast months)
     // Jan-Jun are closed actuals hardcoded in embedded KMS — never overwrite
-    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul'];
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun']; // Jul onwards update weekly from uploads
     if(Array.isArray(acts)&&acts.length)
       acts.forEach(function(r){
         if(r.month&&r.km_value>0&&!CLOSED_ACTUALS.includes(r.month))
