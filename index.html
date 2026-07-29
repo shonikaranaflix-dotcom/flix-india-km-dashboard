@@ -556,7 +556,8 @@ function bC1(kOS,sm,pm){
     {label:"KM on Sale",data:M.map(m=>kOS[m]||0),backgroundColor:"#388bfd",stack:"k"},
     {label:"To Open",data:M.map(m=>to[m]||0),backgroundColor:"#56CFE1",stack:"k"},
     {label:"New Signed",data:M.map(m=>sm[m]||0),backgroundColor:"#73D700",stack:"k"},
-    {label:"Pipeline",data:M.map(m=>pm[m]||0),backgroundColor:"#f0b429",stack:"k"}
+    {label:"Pipeline",data:M.map(m=>pm[m]||0),backgroundColor:"#f0b429",stack:"k"},
+    {label:"YEFC",data:M.map(m=>YEFC[m]||0),type:"line",borderColor:"#ff6b6b",borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:"#ff6b6b",fill:false,stack:undefined,order:0}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:"index",callbacks:{label:c=>" "+c.dataset.label+": "+fmtM(c.raw)}}},scales:{x:{grid:{display:false},ticks:{color:tc}},y:{grid:{color:gc},ticks:{color:tc,callback:v=>fmt(v)},border:{display:false}}}}});
 }
 function bC2(sw,pw){
