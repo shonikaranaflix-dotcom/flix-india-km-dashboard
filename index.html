@@ -242,7 +242,7 @@ input[type=file]{display:none}
     </div>
     <div id="lv-wrap" style="overflow-x:auto"><table id="lv-tbl"><thead><tr id="lv-hd"></tr></thead><tbody id="lv-bd"></tbody></table></div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt);display:flex;gap:14px;flex-wrap:wrap">
-      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">Jan–Dec = actuals · cancellation not applied (accounted for in on-sale KM)</strong></span>
+      <span>Jan–Jun = actuals (W25) · Jul–Dec = on-sale forecast · <strong style="color:var(--am)">Jan–Jul = closed actuals (no cancellation) · Aug–Dec = 8% cancellation applied</strong></span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(115,215,0,.25);display:inline-block"></span>≥100%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(240,180,41,.25);display:inline-block"></span>80–99%</span>
       <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:rgba(248,81,73,.25);display:inline-block"></span>&lt;80%</span>
@@ -709,7 +709,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Cancellation row: 8% of (signed + pipeline) raw KM
   // Cancellation applies to ALL forecast KM from Jul-Dec:
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
-  var FORECAST_IDX=12; // all months are now actuals — no cancellation on any month
+  var FORECAST_IDX=7; // Aug onwards (index 7) = forecast — cancellation applied Aug-Dec
   var cancel_km=M.map(function(_,i){
     if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
     return -Math.round((os[i]+to_[i]+sk[i]+pk[i])*CANCEL_RATE);
@@ -744,7 +744,7 @@ function bKPI(kOS,sm,pm,fc){
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
   // Net forecast = raw total - 8% of all Jul-Dec forecast KM
   var tRAW_FC=Object.values(fc).reduce((a,b)=>a+b,0);
-  var tFORE_KM=0; // all months are actuals — no cancellation applied
+  var tFORE_KM=M.reduce(function(a,m,i){return i>=7?a+(fc[m]||0):a},0); // Aug-Dec forecast KM
   var tFC_net=tRAW_FC-Math.round(tFORE_KM*CANCEL_RATE);
   sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
