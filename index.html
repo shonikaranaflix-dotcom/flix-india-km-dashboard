@@ -696,7 +696,8 @@ function bLV(kOS,sm,pm,fc,ns,np){
   var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+②+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
-  r.push('<tr class="row-vs"><td>→ Forecast vs Budget %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],bd[i]))}).join('')+pT(pct(tFC_NET,tBD))+'</tr>');
+  // Last row: YEFC vs Forecast Net % (how forecast compares to YEFC commitment)
+  r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦ Forecast Net %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],yf[i]))}).join('')+pT(pct(tFC_NET,tYF))+'</tr>');
   bd2.innerHTML=r.join("");
 }
 
