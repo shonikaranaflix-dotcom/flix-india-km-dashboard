@@ -517,41 +517,16 @@ function getPb(r){
 
 // ── Core computations ─────────────────────────────────────────────────────────
 function toOpen(){
+  // Oct-Dec: gap between existing fleet KM capacity and actual on-sale KM
   const o={};
-  M.forEach(m=>o[m]=(m==="Oct"||m==="Nov"||m==="Dec")?Math.max(0,(KME[m]||0)-(KMS[m]||0)):0);
-  // Add W43+ KM from July go-live pairs into Oct-Dec to-open
-  const JUL_CAP_WEEK=42;
-  EXP.forEach(r=>{
-    if(passed(r.go_live))return;
-    const pb=getPb(r);if(!pb)return;
-    const pk=pb*2;
-    const glMonth=glM(r.go_live);
-    if(glMonth!=='Jul')return; // only July go-lives
-    WEEKS.forEach(w=>{
-      if(w<=JUL_CAP_WEEK)return; // only W43+
-      const m=w2m(w);
-      if(m==='Oct'||m==='Nov'||m==='Dec')o[m]=(o[m]||0)+pk;
-    });
-  });
+  M.forEach(m=>o[m]=(m==='Oct'||m==='Nov'||m==='Dec')?Math.max(0,(KME[m]||0)-(KMS[m]||0)):0);
   return o;
 }
 
 // Passed go-lives → KM moves into on-sale row automatically
 function kmOnSale(){
+  // All 12 months are now final actuals — return KMS directly, no go-live additions
   const t={};M.forEach(m=>t[m]=KMS[m]||0);
-  // Jan-Jul are actuals — do NOT add go-live KM on top (already included in actuals)
-  // Only add passed go-live KM for Aug-Dec where actuals=0
-  const ACTUAL_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul'];
-  EXP.forEach(r=>{
-    if(!passed(r.go_live))return;
-    const pb=getPb(r);if(!pb)return;
-    const pk=pb*2;
-    const sw=goLiveWeek(r.go_live);
-    WEEKS.forEach(w=>{
-      const m=w2m(w);
-      if(w>=sw&&!ACTUAL_MONTHS.includes(m))t[m]=(t[m]||0)+pk;
-    });
-  });
   return t;
 }
 
