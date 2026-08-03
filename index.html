@@ -653,7 +653,7 @@ function bBB(kOS){
   M.forEach(m=>{
     const v=kOS[m]||0,b=BUD[m],p=Math.min(Math.round(v/b*100),120);
     const cl=p>=100?"#73D700":p>=80?"#f0b429":"#f85149";
-    const tag=["Jan","Feb","Mar","Apr","May","Jun"].includes(m)?'<span style="font-size:9px;color:var(--bl)">actual</span>':'<span style="font-size:9px;color:var(--mt)">fc</span>';
+    const tag=true?'<span style="font-size:9px;color:var(--bl)">actual</span>':'<span style="font-size:9px;color:var(--mt)">fc</span>';
     c.innerHTML+='<div class="brow"><div class="brt"><span style="color:var(--tx);font-weight:500">'+m+" "+tag+'</span><span style="font-weight:600;font-family:\'DM Mono\',monospace;font-size:10px;color:'+cl+'">'+p+'%</span></div><div class="trk"><div class="fil" style="width:'+p+'%;background:'+cl+'"></div></div></div>';
   });
 }
@@ -1135,7 +1135,7 @@ var _userEdited=false;
     // KM actuals sync from Supabase:
     // Jan-Jun: never overwrite (closed actuals)
     // Jul-Dec: only update if Supabase value is HIGHER than embedded (protects manual updates)
-    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun'];
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     if(Array.isArray(acts)&&acts.length)
       acts.forEach(function(r){
         if(!r.month||!r.km_value)return;
