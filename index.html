@@ -696,8 +696,18 @@ function bLV(kOS,sm,pm,fc,ns,np){
   var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+②+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
-  // Last row: YEFC vs Forecast Net % (how forecast compares to YEFC commitment)
+  // YEFC vs full forecast (incl pipeline)
   r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦ Forecast Net %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],yf[i]))}).join('')+pT(pct(tFC_NET,tYF))+'</tr>');
+
+  // ⑦b FORECAST — SIGNED ONLY (no pipeline KM)
+  var fc2_signed=M.map(function(m,i){
+    var raw=(os[i]||0)+(to_[i]||0)+(sk[i]||0); // on-sale + to-open + signed only (no pk)
+    var cancel=i>=FORECAST_IDX?-Math.round(raw*CANCEL_RATE):0;
+    return raw+cancel;
+  });
+  var tFC2_SIGNED=fc2_signed.reduce(function(a,b){return a+b},0);
+  r.push('<tr class="row-fcst" style="opacity:.75"><td>⑦b FORECAST — Signed Only (excl. pipeline)</td>'+fc2_signed.map(nt).join('')+nT(tFC2_SIGNED)+'</tr>');
+  r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦b Signed-Only Forecast %</td>'+M.map(function(_,i){return pt(pct(fc2_signed[i],yf[i]))}).join('')+pT(pct(tFC2_SIGNED,tYF))+'</tr>');
   bd2.innerHTML=r.join("");
 }
 
