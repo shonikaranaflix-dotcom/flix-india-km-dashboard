@@ -232,6 +232,7 @@ input[type=file]{display:none}
     <div class="kpi" style="--ac:var(--g)"><div class="kl">New Lines Signed</div><div class="kv" id="k3">—<span>M</span></div><div class="ks">BP contracted · from go-live</div><div class="kd du" id="k3d">—</div></div>
     <div class="kpi" style="--ac:var(--am)"><div class="kl">Pipeline KM</div><div class="kv" id="k4">—<span>M</span></div><div class="ks">BP scouting ongoing</div><div class="kd" style="background:var(--amd);color:var(--am)" id="k4d">—</div></div>
     <div class="kpi" style="--ac:var(--rd)"><div class="kl">Forecast (Full Year)</div><div class="kv" id="k5">—<span>M</span></div><div class="ks">All sources vs 58M budget</div><div class="kd du" id="k5d">—</div></div>
+    <div class="kpi" style="--ac:var(--am)"><div class="kl">Signed-Only Forecast</div><div class="kv" id="k6">—<span>M</span></div><div class="ks">Excl. pipeline · vs YEFC</div><div class="kd" id="k6d">—</div></div>
   </div>
 
   <div class="card">
@@ -734,6 +735,18 @@ function bKPI(kOS,sm,pm,fc){
   var tFC_net=tRAW_FC-Math.round(tFORE_KM*CANCEL_RATE);
   sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
+  // k6 — Signed-Only Forecast vs YEFC
+  var tYF_kpi=M.reduce(function(a,m){return a+(YEFC[m]||0)},0);
+  var fc2_signed_kpi=M.map(function(m,i){
+    var raw=(kOS[m]||0)+(to[m]||0)+(sm[m]||0);
+    var cancel=i>=7?-Math.round(raw*CANCEL_RATE):0;
+    return raw+cancel;
+  });
+  var tFC2S=fc2_signed_kpi.reduce(function(a,b){return a+b},0);
+  sk("k6",(tFC2S/1e6).toFixed(1)+'<span>M KM</span>');
+  var gd=pct(tFC2S,tYF_kpi)-100;
+  sc("k6d","kd "+(gd>=0?"du":"dd"));
+  st("k6d",(gd>=0?"▲":"▼")+" "+Math.abs(gd).toFixed(0)+"% vs YEFC");
 }
 
 // ── Region table ──────────────────────────────────────────────────────────────
