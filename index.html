@@ -737,8 +737,9 @@ function bKPI(kOS,sm,pm,fc){
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
   // k6 — Signed-Only Forecast vs YEFC
   var tYF_kpi=M.reduce(function(a,m){return a+(YEFC[m]||0)},0);
+  var toKPI=toOpen();
   var fc2_signed_kpi=M.map(function(m,i){
-    var raw=(kOS[m]||0)+(to[m]||0)+(sm[m]||0);
+    var raw=(kOS[m]||0)+(toKPI[m]||0)+(sm[m]||0);
     var cancel=i>=7?-Math.round(raw*CANCEL_RATE):0;
     return raw+cancel;
   });
