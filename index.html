@@ -394,7 +394,14 @@ input[type=file]{display:none}
           <th>Go-live Date</th>
           <th style="text-align:right">Wkly KM/bus</th>
           <th style="text-align:right">Pair KM/wk</th>
-          <th>BDM</th><th>Status</th><th></th>
+          <th>BDM</th><th>Status</th>
+          <th style="text-align:center">Contract<br>Signed</th>
+          <th style="text-align:right">RT Amount<br>(₹)</th>
+          <th style="text-align:center">Days<br>Running</th>
+          <th>Body Builder</th>
+          <th>Chassis Recd<br>at BBB</th>
+          <th>Expected<br>Delivery</th>
+          <th></th>
         </tr></thead>
         <tbody id="ne-bd"></tbody>
         <tfoot><tr><td colspan="10"><div id="exp-filter-totals"></div></td></tr></tfoot>
@@ -848,6 +855,12 @@ function bExp(){
     row+='<td style="text-align:right;font-size:10px;color:var(--mt)">'+(r.pb>0?fmtN(Math.round(r.pb*2)):"—")+'</td>';
     row+='<td><select class="ipt" data-id="'+rid+'" data-f="bdm" onchange="upd(this)" style="font-size:10px;width:75px"><option'+(r.bdm==="Aakash"?" selected":"")+'>Aakash</option><option'+(r.bdm==="Syed"?" selected":"")+'>Syed</option></select></td>';
     row+='<td>'+st+'</td>';
+    row+='<td style="text-align:center"><input type="checkbox" data-id="'+rid+'" data-f="contract_signed" onchange="updCheck(this)"'+(r.contract_signed?' checked':'')+' style="width:16px;height:16px;cursor:pointer"></td>';
+    row+='<td><input class="ipt" type="number" min="0" step="100" value="'+(r.rt_amount||0)+'" data-id="'+rid+'" data-f="rt_amount" onchange="upd(this)" style="width:90px;text-align:right"></td>';
+    row+='<td><input class="ipt" type="number" min="0" step="1" value="'+(r.days_running||0)+'" data-id="'+rid+'" data-f="days_running" onchange="upd(this)" style="width:60px;text-align:center"></td>';
+    row+='<td><input class="ipt" value="'+(r.body_builder||'')+'" data-id="'+rid+'" data-f="body_builder" onchange="upd(this)" placeholder="Builder name" style="min-width:110px;font-size:10px"></td>';
+    row+='<td><input class="ipt" type="date" value="'+(r.chassis_recd_date||'')+'" data-id="'+rid+'" data-f="chassis_recd_date" onchange="upd(this)" style="width:125px"></td>';
+    row+='<td><input class="ipt" type="date" value="'+(r.expected_delivery||'')+'" data-id="'+rid+'" data-f="expected_delivery" onchange="upd(this)" style="width:125px"></td>';
     row+='<td><span id="sv'+rid+'" style="font-size:9px"></span> <button class="del-btn" onclick="delPair('+rid+')">✕</button></td></tr>';
     return row;
   }).join("");
@@ -888,6 +901,19 @@ function bExp(){
 }
 
 // ── Save a field to Supabase ──────────────────────────────────────────────────
+// Handle checkbox boolean fields
+async function updCheck(el){
+  var id=+el.dataset.id,f=el.dataset.f,v=el.checked;
+  var i=EXP.findIndex(function(r){return r.id===id});if(i<0)return;
+  EXP[i][f]=v;
+  var sv=document.getElementById("sv"+id);
+  if(sv){sv.textContent="saving…";sv.style.color="var(--am)"}
+  var body={updated_at:new Date().toISOString()};body[f]=v;
+  await sbPatch("expansion_pairs","id=eq."+id,body);
+  if(sv){sv.textContent="✓";sv.style.color="var(--g)";setTimeout(function(){sv.textContent=""},2000)}
+  _userEdited=true;
+}
+
 async function upd(el){
   var id=+el.dataset.id,f=el.dataset.f,v=f==="pb"?(parseFloat(el.value)||0):el.value;
   var i=EXP.findIndex(function(r){return r.id===id});if(i<0)return;
@@ -943,7 +969,7 @@ async function delPair(id){
 
 // ── Add new pair ──────────────────────────────────────────────────────────────
 async function addNewLine(){
-  var row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North"};
+  var row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North",contract_signed:false,rt_amount:0,days_running:0,body_builder:"",chassis_recd_date:"",expected_delivery:""};
   var res=await sbInsert("expansion_pairs",row);
   if(res&&res[0]){EXP.push(res[0]);bExp();bRts()}
 }
