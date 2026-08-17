@@ -479,7 +479,7 @@ const sbH={"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"appl
 async function sbGet(t,q){try{const r=await fetch(SB_URL+"/rest/v1/"+t+"?"+(q||""),{headers:sbH});return r.ok?await r.json():[]}catch(e){return[]}}
 async function sbPatch(t,f,b){try{await fetch(SB_URL+"/rest/v1/"+t+"?"+f,{method:"PATCH",headers:sbH,body:JSON.stringify(b)})}catch(e){}}
 async function sbUpsert(t,b){try{await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:{...sbH,"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)})}catch(e){}}
-async function sbInsert(t,b){try{const r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH,body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
+async async function sbInsert(t,b){try{const r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH,body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -996,7 +996,7 @@ async function delPair(id){
 
 // ── Add new pair ──────────────────────────────────────────────────────────────
 async function addNewLine(){
-  var row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-08-15",pb:0,bdm:"Aakash",region:"North",contract_signed:false,rt_amount:0,days_running:0,body_builder:"",chassis_recd_date:"",expected_delivery:""};
+  var row={lc:"",route:"New Route",pair:"Pair 1",bp:"",signed:false,go_live:"2026-09-30",pb:0,bdm:"Aakash",region:"North"};
   var res=await sbInsert("expansion_pairs",row);
   if(res&&res[0]){EXP.push(res[0]);bExp();bRts()}
 }
