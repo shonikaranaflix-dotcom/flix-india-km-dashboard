@@ -585,7 +585,7 @@ function busCounts(){
 
 function forecastKM(kOS,sm,pm){
   const to=toOpen(),fc={};
-  M.forEach(m=>fc[m]=(kOS[m]||0)+(sm[m]||0)+(pm[m]||0));
+  M.forEach(m=>fc[m]=(kOS[m]||0)+(sm[m]||0)); // pipeline excluded from ⑦ FORECAST NET
   return fc;
 }
 
@@ -701,7 +701,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   var FORECAST_IDX=7; // Aug onwards (index 7) = forecast — cancellation applied Aug-Dec
   var cancel_km=M.map(function(_,i){
     if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
-    return -Math.round((os[i]+sk[i]+pk[i])*CANCEL_RATE);
+    return -Math.round((os[i]+sk[i])*CANCEL_RATE); // pipeline not included in cancellation base
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
@@ -709,7 +709,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Net forecast = raw forecast minus cancellation
   var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);
-  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
+  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+④ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
   // YEFC vs full forecast (incl pipeline)
   r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦ Forecast Net %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],yf[i]))}).join('')+pT(pct(tFC_NET,tYF))+'</tr>');
 
@@ -744,7 +744,7 @@ function bKPI(kOS,sm,pm,fc){
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
   // Net forecast = raw total - 8% of all Jul-Dec forecast KM
   var tRAW_FC=Object.values(fc).reduce((a,b)=>a+b,0);
-  var tFORE_KM=M.reduce(function(a,m,i){return i>=7?a+(fc[m]||0):a},0); // Aug-Dec forecast KM
+  var tFORE_KM=M.reduce(function(a,m,i){return i>=7?a+(fc[m]||0):a},0); // Aug-Dec (signed only, no pipeline)
   var tFC_net=tRAW_FC-Math.round(tFORE_KM*CANCEL_RATE);
   sk("k5",(tFC_net/1e6).toFixed(1)+'<span>M KM</span>');
   var fd=pct(tFC_net,tBD)-100;sc("k5d","kd "+(fd>=0?"du":"dd"));st("k5d",(fd>=0?"▲":"▼")+" "+Math.abs(fd).toFixed(0)+"% vs 58M budget");
