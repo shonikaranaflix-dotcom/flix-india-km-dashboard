@@ -739,7 +739,7 @@ function bKPI(kOS,sm,pm,fc){
   function sc(id,v){var e=document.getElementById(id);if(e)e.className=v}
   sk("k1",(tOS/1e6).toFixed(1)+'<span>M KM</span>');
   var od=pct(tOS,tBD)-100;sc("k1d","kd "+(od>=0?"du":"dd"));st("k1d",(od>=0?"▲":"▼")+" "+Math.abs(od).toFixed(1)+"% vs budget");
-  sk("k2",(tTO/1e6).toFixed(1)+'<span>M KM</span>');
+  // k2 removed (KM to Open removed from dashboard)
   sk("k3",(tS/1e6).toFixed(1)+'<span>M KM</span>');st("k3d",sig+" signed pairs · "+sig*2+" buses");
   sk("k4",(tP/1e6).toFixed(1)+'<span>M KM</span>');st("k4d",pip+" pipeline pairs");
   // Net forecast = raw total - 8% of all Jul-Dec forecast KM
