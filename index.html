@@ -797,7 +797,12 @@ function bReg(){
 }
 
 // ── Expansion editor ──────────────────────────────────────────────────────────
-var neF="all",neS="",neBDM="all",neView="route";
+var neF="all",neS="",neBDM="all",neView="route",neGLF="all";
+function setGL(v,btn){
+  neGLF=v;
+  document.querySelectorAll('#ne-gl-fs .fb').forEach(function(b){b.classList.toggle('active',b.dataset.gl===v)});
+  bExp();
+}
 
 function setBDM(bdm){
   neBDM=bdm;
@@ -860,9 +865,9 @@ function bExp(){
               ||(r.lc||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.pair||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.bp||"").toLowerCase().includes(neS.toLowerCase());
-    var mg=!neGLF||neGLF==='all'
+    var mg=neGLF==='all'
       ||(neGLF==='live'&&passed(r.go_live))
-      ||(!passed(r.go_live)&&(r.go_live||'').startsWith(neGLF));
+      ||(neGLF!=='all'&&neGLF!=='live'&&(r.go_live||'').startsWith(neGLF));
     return mf&&ms&&mg&&(neBDM==="all"||r.bdm===neBDM);
   });
 
