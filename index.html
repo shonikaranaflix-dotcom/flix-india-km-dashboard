@@ -228,8 +228,7 @@ input[type=file]{display:none}
 <main class="mn">
   <div class="kr">
     <div class="kpi" style="--ac:var(--bl)"><div class="kl">KM on Sale</div><div class="kv" id="k1">—<span>M</span></div><div class="ks">Existing lines · open for sale</div><div class="kd" id="k1d">—</div></div>
-    <div class="kpi" style="--ac:#56CFE1"><div class="kl">Existing KM to Open</div><div class="kv" id="k2">—<span>M</span></div><div class="ks">Oct–Dec · not yet on sale</div><div class="kd dn">Existing lines</div></div>
-    <div class="kpi" style="--ac:var(--g)"><div class="kl">New Lines Signed</div><div class="kv" id="k3">—<span>M</span></div><div class="ks">BP contracted · from go-live</div><div class="kd du" id="k3d">—</div></div>
+    <div class="kv" id="k3">—<span>M</span></div><div class="ks">BP contracted · from go-live</div><div class="kd du" id="k3d">—</div></div>
     <div class="kpi" style="--ac:var(--am)"><div class="kl">Pipeline KM</div><div class="kv" id="k4">—<span>M</span></div><div class="ks">BP scouting ongoing</div><div class="kd" style="background:var(--amd);color:var(--am)" id="k4d">—</div></div>
     <div class="kpi" style="--ac:var(--rd)"><div class="kl">Forecast (Full Year)</div><div class="kv" id="k5">—<span>M</span></div><div class="ks">All sources vs 58M budget</div><div class="kd du" id="k5d">—</div></div>
     <div class="kpi" style="--ac:var(--am)"><div class="kl">Signed-Only Forecast</div><div class="kv" id="k6">—<span>M</span></div><div class="ks">Excl. pipeline · vs YEFC</div><div class="kd" id="k6d">—</div></div>
@@ -275,7 +274,6 @@ input[type=file]{display:none}
       <div class="ct">Monthly KM — all sources vs budget</div>
       <div class="leg">
         <div class="li"><div class="ld" style="background:#388bfd"></div>KM on Sale</div>
-        <div class="li"><div class="ld" style="background:#56CFE1"></div>To Open</div>
         <div class="li"><div class="ld" style="background:#73D700"></div>New Signed</div>
         <div class="li"><div class="ld" style="background:#f0b429"></div>Pipeline</div>
         <div class="li"><div style="width:14px;height:0;border-top:2px dashed #ff6b6b;margin-top:7px;margin-right:4px;display:inline-block"></div>YEFC</div>
@@ -587,7 +585,7 @@ function busCounts(){
 
 function forecastKM(kOS,sm,pm){
   const to=toOpen(),fc={};
-  M.forEach(m=>fc[m]=(kOS[m]||0)+(to[m]||0)+(sm[m]||0)+(pm[m]||0));
+  M.forEach(m=>fc[m]=(kOS[m]||0)+(sm[m]||0)+(pm[m]||0));
   return fc;
 }
 
@@ -602,7 +600,6 @@ function bC1(kOS,sm,pm){
   CH.c1=new Chart(document.getElementById("c1"),{type:"bar",data:{labels:M,datasets:[
     {label:"Budget",data:M.map(m=>BUD[m]),backgroundColor:"rgba(255,255,255,.07)",borderColor:"rgba(255,255,255,.15)",borderWidth:1,stack:"b"},
     {label:"KM on Sale",data:M.map(m=>kOS[m]||0),backgroundColor:"#388bfd",stack:"k"},
-    {label:"To Open",data:M.map(m=>to[m]||0),backgroundColor:"#56CFE1",stack:"k"},
     {label:"New Signed",data:M.map(m=>sm[m]||0),backgroundColor:"#73D700",stack:"k"},
     {label:"Pipeline",data:M.map(m=>pm[m]||0),backgroundColor:"#f0b429",stack:"k"},
     {label:"YEFC",data:M.map(m=>YEFC[m]||0),type:"line",borderColor:"#ff6b6b",borderWidth:2,borderDash:[6,3],pointRadius:3,pointBackgroundColor:"#ff6b6b",fill:false,stack:undefined,order:0}
@@ -685,7 +682,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   hd.innerHTML="<th>Line Item</th>"+M.map(m=>"<th>"+m+"</th>").join("")+'<th class="tot-hdr">FY Total</th>';
   var r=[];
   r.push("<tr><td>① KM on Sale (existing + passed go-lives)</td>"+os.map(nt).join("")+nT(tOS)+"</tr>");
-  r.push('<tr class="row-sub"><td>② Existing KM to Open (Oct–Dec)</td>'+to_.map(nt).join("")+nT(tTO)+"</tr>");
+
   r.push('<tr class="row-div"><td>③ KM Budget</td>'+bd.map(nt).join("")+nT(tBD)+"</tr>");
   r.push('<tr class="row-vs"><td>→ On Sale vs Budget %</td>'+M.map(function(_,i){return pt(pct(os[i],bd[i]))}).join("")+pT(pct(tOS,tBD))+"</tr>");
   // YEFC rows
@@ -704,7 +701,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   var FORECAST_IDX=7; // Aug onwards (index 7) = forecast — cancellation applied Aug-Dec
   var cancel_km=M.map(function(_,i){
     if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
-    return -Math.round((os[i]+to_[i]+sk[i]+pk[i])*CANCEL_RATE);
+    return -Math.round((os[i]+sk[i]+pk[i])*CANCEL_RATE);
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
@@ -712,18 +709,18 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Net forecast = raw forecast minus cancellation
   var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);
-  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+②+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
+  r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+④+⑤ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
   // YEFC vs full forecast (incl pipeline)
   r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦ Forecast Net %</td>'+M.map(function(_,i){return pt(pct(fc_net[i],yf[i]))}).join('')+pT(pct(tFC_NET,tYF))+'</tr>');
 
   // ⑦b FORECAST — SIGNED ONLY (no pipeline KM)
   var fc2_signed=M.map(function(m,i){
-    var raw=(os[i]||0)+(to_[i]||0)+(sk[i]||0); // on-sale + to-open + signed only (no pk)
+    var raw=(os[i]||0)+(sk[i]||0); // on-sale + signed only (no to-open, no pipeline)
     var cancel=i>=FORECAST_IDX?-Math.round(raw*CANCEL_RATE):0;
     return raw+cancel;
   });
   var tFC2_SIGNED=fc2_signed.reduce(function(a,b){return a+b},0);
-  r.push('<tr class="row-fcst" style="opacity:.75"><td>⑦b FORECAST — Signed Only (excl. pipeline)</td>'+fc2_signed.map(nt).join('')+nT(tFC2_SIGNED)+'</tr>');
+  r.push('<tr class="row-fcst" style="opacity:.75"><td>⑦b FORECAST — Signed Only (excl. pipeline, excl. to-open)</td>'+fc2_signed.map(nt).join('')+nT(tFC2_SIGNED)+'</tr>');
   r.push('<tr class="row-vs"><td>→ ③b YEFC vs ⑦b Signed-Only Forecast %</td>'+M.map(function(_,i){return pt(pct(fc2_signed[i],yf[i]))}).join('')+pT(pct(tFC2_SIGNED,tYF))+'</tr>');
   bd2.innerHTML=r.join("");
 }
@@ -755,7 +752,7 @@ function bKPI(kOS,sm,pm,fc){
   var tYF_kpi=M.reduce(function(a,m){return a+(YEFC[m]||0)},0);
   var toKPI=toOpen();
   var fc2_signed_kpi=M.map(function(m,i){
-    var raw=(kOS[m]||0)+(toKPI[m]||0)+(sm[m]||0);
+    var raw=(kOS[m]||0)+(sm[m]||0);
     var cancel=i>=7?-Math.round(raw*CANCEL_RATE):0;
     return raw+cancel;
   });
