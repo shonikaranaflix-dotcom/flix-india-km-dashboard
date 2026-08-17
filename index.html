@@ -385,6 +385,14 @@ input[type=file]{display:none}
         <button class="fb" data-f="signed">✅ Signed</button>
         <button class="fb pip" data-f="pipeline">🔍 Pipeline</button>
       </div>
+      <div class="ne-fs" id="ne-gl-fs" style="margin-top:6px">
+        <span style="font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--mt);text-transform:uppercase;margin-right:4px">Go-live:</span>
+        <button class="fb active" data-gl="all" onclick="setGL('all',this)">All</button>
+        <button class="fb" data-gl="2026-08" onclick="setGL('2026-08',this)">Aug</button>
+        <button class="fb" data-gl="2026-09" onclick="setGL('2026-09',this)">Sep</button>
+        <button class="fb" data-gl="2026-10" onclick="setGL('2026-10',this)">Oct</button>
+        <button class="fb" data-gl="live" onclick="setGL('live',this)">⚡ Live</button>
+      </div>
       <input class="srch" placeholder="Search route, line or pair…" id="ne-sr">
       <select id="ne-gl-filter" onchange="neGLF=this.value;bExp()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--br);background:var(--cs);color:var(--tx);cursor:pointer;min-width:140px"><option value="">All go-live dates</option></select>
     </div>
@@ -852,7 +860,9 @@ function bExp(){
               ||(r.lc||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.pair||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.bp||"").toLowerCase().includes(neS.toLowerCase());
-    var mg=!neGLF||(r.go_live||'')=== neGLF;
+    var mg=!neGLF||neGLF==='all'
+      ||(neGLF==='live'&&passed(r.go_live))
+      ||(!passed(r.go_live)&&(r.go_live||'').startsWith(neGLF));
     return mf&&ms&&mg&&(neBDM==="all"||r.bdm===neBDM);
   });
 
