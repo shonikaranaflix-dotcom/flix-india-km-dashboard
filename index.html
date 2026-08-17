@@ -479,7 +479,7 @@ const sbH={"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"appl
 async function sbGet(t,q){try{const r=await fetch(SB_URL+"/rest/v1/"+t+"?"+(q||""),{headers:sbH});return r.ok?await r.json():[]}catch(e){return[]}}
 async function sbPatch(t,f,b){try{await fetch(SB_URL+"/rest/v1/"+t+"?"+f,{method:"PATCH",headers:sbH,body:JSON.stringify(b)})}catch(e){}}
 async function sbUpsert(t,b){try{await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:{...sbH,"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)})}catch(e){}}
-async async function sbInsert(t,b){try{const r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH,body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
+async function sbInsert(t,b){try{const r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH,body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
