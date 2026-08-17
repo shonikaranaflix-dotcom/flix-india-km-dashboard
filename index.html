@@ -386,6 +386,7 @@ input[type=file]{display:none}
         <button class="fb pip" data-f="pipeline">🔍 Pipeline</button>
       </div>
       <input class="srch" placeholder="Search route, line or pair…" id="ne-sr">
+      <select id="ne-gl-filter" onchange="neGLF=this.value;bExp()" style="font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--br);background:var(--cs);color:var(--tx);cursor:pointer;min-width:140px"><option value="">All go-live dates</option></select>
     </div>
     <div class="ts">
       <table class="ne-tbl">
@@ -832,13 +833,27 @@ function bRts(){
 // FIX 4+5: filter totals + total buses row below table
 function bExp(){
   var el=document.getElementById("ne-bd");if(!el)return;
+  // Populate go-live dropdown dynamically from unique dates in EXP
+  var glSel=document.getElementById('ne-gl-filter');
+  if(glSel){
+    var curVal=glSel.value;
+    var uniqueDates=[...new Set(EXP.map(function(r){return r.go_live||''}).filter(Boolean))].sort();
+    glSel.innerHTML='<option value="">All go-live dates</option>'
+      +uniqueDates.map(function(d){
+        var parts=d.split('-');
+        var label=parts[2]+'/'+parts[1]+'/'+parts[0];
+        return '<option value="'+d+'"'+(d===curVal?' selected':'')+'>'+label+'</option>';
+      }).join('');
+    glSel.value=curVal;
+  }
   var flt=EXP.filter(function(r){
     var mf=neF==="all"||(neF==="signed"&&r.signed)||(neF==="pipeline"&&!r.signed);
     var ms=!neS||r.route.toLowerCase().includes(neS.toLowerCase())
               ||(r.lc||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.pair||"").toLowerCase().includes(neS.toLowerCase())
               ||(r.bp||"").toLowerCase().includes(neS.toLowerCase());
-    return mf&&ms&&(neBDM==="all"||r.bdm===neBDM);
+    var mg=!neGLF||(r.go_live||'')=== neGLF;
+    return mf&&ms&&mg&&(neBDM==="all"||r.bdm===neBDM);
   });
 
   var lv='<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(115,215,0,.15);color:var(--g)">⚡live</span>';
