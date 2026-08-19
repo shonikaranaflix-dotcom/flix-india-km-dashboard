@@ -874,6 +874,7 @@ function bExp(){
     var st=r.signed?'<span class="sp sp-s">✅</span>':'<span class="sp sp-p">🔍</span>';
     var rid=r.id;
     var row='<tr data-id="'+rid+'" style="'+(ok?"background:rgba(115,215,0,.03)":"")+'"><td><input class="ipt" value="'+r.route+'" data-id="'+rid+'" data-f="route" onchange="upd(this)" style="min-width:130px;font-weight:500;color:'+(ok?"var(--g)":"var(--tx)")+'"></td>';
+    row+='<td><input class="ipt" value="'+(r.route2||'')+'" data-id="'+rid+'" data-f="route2" onchange="upd(this)" placeholder="Alt route" style="min-width:110px;color:var(--mt);font-size:11px"></td>';
     row+='<td><input class="ipt" value="'+(r.lc||"")+'" data-id="'+rid+'" data-f="lc" onchange="upd(this)" style="width:90px;font-family:monospace;font-size:10px;color:var(--mt)"></td>';
     row+='<td><input class="ipt" value="'+(r.pair||"")+'" data-id="'+rid+'" data-f="pair" onchange="upd(this)" style="width:65px;font-size:10px"></td>';
     row+='<td><input class="ipt" value="'+(r.bp||"")+'" data-id="'+rid+'" data-f="bp" onchange="upd(this)" placeholder="BP name" style="min-width:120px;font-size:10px;color:'+(r.signed?"var(--g)":"var(--mt)")+'"></td>';
