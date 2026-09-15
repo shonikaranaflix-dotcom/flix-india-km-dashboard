@@ -1205,8 +1205,9 @@ var _userEdited=false;
     }
     renderAll();
   }catch(e){
-    console.warn("Supabase:",e.message);
-    if(badge)badge.textContent="Live · cached";
+    console.error("Supabase sync failed:",e.message,e);
+    if(badge){badge.textContent="Live · cached";badge.title="Error: "+e.message+" — Click to retry";badge.style.cursor="pointer";badge.onclick=function(){location.reload();}}
+    renderAll();
   }
 })();
 
