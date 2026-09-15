@@ -1189,7 +1189,7 @@ var _userEdited=false;
     // KM actuals sync from Supabase:
     // Jan-Jun: never overwrite (closed actuals)
     // Jul-Dec: only update if Supabase value is HIGHER than embedded (protects manual updates)
-    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']; // Oct-Dec open to Supabase updates
     if(Array.isArray(acts)&&acts.length)
       acts.forEach(function(r){
         if(!r.month||!r.km_value)return;
@@ -1197,11 +1197,11 @@ var _userEdited=false;
         if(+r.km_value>(KMS[r.month]||0))KMS[r.month]=+r.km_value; // take higher
       });
     // Only overwrite EXP if user hasn't made any edits this session
-    if(!_userEdited&&Array.isArray(prs)&&prs.length){
-      EXP=prs;
-      if(badge)badge.textContent="Live · Supabase";
+    if(Array.isArray(prs)&&prs.length){
+      if(!_userEdited)EXP=prs; // always sync on fresh load, preserve edits in-session
+      if(badge)badge.textContent=_userEdited?"Live · Supabase (edited)":"Live · Supabase";
     } else if(badge){
-      badge.textContent=_userEdited?"Live · Supabase (edited)":"Live · cached";
+      badge.textContent="Live · cached";
     }
     renderAll();
   }catch(e){
