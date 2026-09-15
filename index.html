@@ -224,6 +224,7 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<div id="sb-err-banner" style="display:none;background:#7f1d1d;color:#fca5a5;padding:10px 16px;font-size:13px;border-radius:8px;margin:8px 12px;cursor:pointer;border:1px solid #ef4444;font-weight:500"></div>
 <div id="tab-dash" class="tab-pane active">
 <main class="mn">
   <div class="kr">
@@ -476,7 +477,11 @@ let KMS={Jan:4551111,Feb:3897253,Mar:4203972,Apr:4081437,May:5398124,Jun:5599793
 
 // ── Supabase helpers v3 ──────────────────────────────────────────────────────────
 const sbH={"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"};
-async function sbGet(t,q){try{const r=await fetch(SB_URL+"/rest/v1/"+t+"?"+(q||""),{headers:sbH});return r.ok?await r.json():[]}catch(e){return[]}}
+async function sbGet(t,q){
+  const r=await fetch(SB_URL+"/rest/v1/"+t+"?"+(q||""),{headers:sbH});
+  if(!r.ok){const txt=await r.text();throw new Error("HTTP "+r.status+" on "+t+": "+txt.slice(0,120));}
+  return r.json();
+}
 async function sbPatch(t,f,b){try{await fetch(SB_URL+"/rest/v1/"+t+"?"+f,{method:"PATCH",headers:sbH,body:JSON.stringify(b)})}catch(e){}}
 async function sbUpsert(t,b){try{await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:{...sbH,"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(b)})}catch(e){}}
 async function sbInsert(t,b){try{const r=await fetch(SB_URL+"/rest/v1/"+t,{method:"POST",headers:sbH,body:JSON.stringify(b)});return r.ok?await r.json():null}catch(e){return null}}
@@ -1206,7 +1211,10 @@ var _userEdited=false;
     renderAll();
   }catch(e){
     console.error("Supabase sync failed:",e.message,e);
-    if(badge){badge.textContent="Live · cached";badge.title="Error: "+e.message+" — Click to retry";badge.style.cursor="pointer";badge.onclick=function(){location.reload();}}
+    if(badge){badge.textContent="⚠ Sync failed · cached";badge.title=e.message;}
+    // Show visible error banner
+    var eb=document.getElementById('sb-err-banner');
+    if(eb){eb.style.display='block';eb.textContent='⚠ Supabase sync failed: '+e.message+' — data shown may be outdated. Click to retry.';eb.onclick=function(){location.reload();}}
     renderAll();
   }
 })();
