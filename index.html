@@ -1169,6 +1169,57 @@ function switchTab(id,btn){
 function recalc(){renderAll()}
 
 // ── Master render ─────────────────────────────────────────────────────────────
+
+// ── Weekly go-live tracker ────────────────────────────────────────────────────
+function bWkTbl(){
+  var el=document.getElementById("wk-bd"); if(!el) return;
+  // Group pairs by calendar week (Mon-Sun)
+  var weeks={};
+  EXP.forEach(function(r){
+    if(!r.signed||!r.go_live) return;
+    var d=new Date(r.go_live);
+    // Get Monday of that week
+    var day=d.getDay(); // 0=Sun
+    var diff=day===0?-6:1-day;
+    var mon=new Date(d); mon.setDate(d.getDate()+diff);
+    var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    var key=mon.toISOString().slice(0,10);
+    if(!weeks[key]) weeks[key]={mon:mon,sun:sun,North:0,West:0,South:0,total:0,buses:0,routes:[]};
+    var rg=r.region||"?";
+    if(weeks[key][rg]!==undefined) weeks[key][rg]++;
+    weeks[key].total++;
+    weeks[key].buses+=2;
+    var label=r.route+(r.pair?" ("+r.pair+")":"");
+    if(!weeks[key].routes.includes(r.route)) weeks[key].routes.push(r.route);
+  });
+
+  var TODAY=new Date(); TODAY.setHours(0,0,0,0);
+  var fmt=function(d){return d.getDate()+"/"+(d.getMonth()+1);};
+  var sorted=Object.keys(weeks).sort();
+
+  el.innerHTML=sorted.map(function(k){
+    var w=weeks[k];
+    var isPast=w.sun<TODAY;
+    var isCurrent=w.mon<=TODAY&&TODAY<=w.sun;
+    var bg=isCurrent?"rgba(115,215,0,.06)":isPast?"rgba(255,255,255,.02)":"";
+    var weekLabel=fmt(w.mon)+" – "+fmt(w.sun)+" "+w.sun.getFullYear();
+    var badge=isCurrent
+      ?"<span style='font-size:8px;font-weight:600;padding:1px 6px;border-radius:999px;background:rgba(115,215,0,.2);color:#73D700;margin-left:6px'>THIS WEEK</span>"
+      :isPast?"<span style='font-size:8px;color:var(--mt);margin-left:6px'>✓ done</span>":"";
+    var BD="border:1px solid rgba(255,255,255,.06)";
+    var routes=w.routes.slice(0,3).join(", ")+(w.routes.length>3?" +"+( w.routes.length-3)+" more":"");
+    return "<tr style='background:"+bg+"'>"
+      +"<td style='padding:6px 10px;font-weight:500;color:"+(isPast?"var(--mt)":"var(--tx)")+";"+BD+"'>"+weekLabel+badge+"</td>"
+      +"<td style='padding:6px 10px;text-align:center;color:#388bfd;font-weight:600;"+BD+"'>"+(w.North||"–")+"</td>"
+      +"<td style='padding:6px 10px;text-align:center;color:#a371f7;font-weight:600;"+BD+"'>"+(w.West||"–")+"</td>"
+      +"<td style='padding:6px 10px;text-align:center;color:#73D700;font-weight:600;"+BD+"'>"+(w.South||"–")+"</td>"
+      +"<td style='padding:6px 10px;text-align:center;font-weight:700;"+BD+"'>"+w.total+"</td>"
+      +"<td style='padding:6px 10px;text-align:center;color:var(--mt);"+BD+"'>"+w.buses+"</td>"
+      +"<td style='padding:6px 10px;font-size:10px;color:var(--mt);max-width:300px;"+BD+"'>"+routes+"</td>"
+      +"</tr>";
+  }).join("");
+}
+
 function renderAll(){
   var kOS=kmOnSale();
   var nkm=newKM();var sm=nkm.sm,pm=nkm.pm,sw=nkm.sw,pw=nkm.pw;
@@ -1176,7 +1227,7 @@ function renderAll(){
   var fc=forecastKM(kOS,sm,pm);
   bKPI(kOS,sm,pm,fc);bLV(kOS,sm,pm,fc,ns,np);
   bC1(kOS,sm,pm);bC2(sw,pw);bC3(ns,np);bC4(fc);bC5(kOS,sm,pm);
-  bBB(kOS);bReg();bRts();bExp();
+  bBB(kOS);bReg();bRts();bWkTbl();bExp();
 }
 
 // ── Init: render immediately, then sync from Supabase ─────────────────────────
