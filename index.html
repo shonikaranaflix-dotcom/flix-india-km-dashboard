@@ -193,10 +193,10 @@ input[type=file]{display:none}
     <div><div class="lt">Flix India — KM Dashboard 2026</div><div class="ls">Business Team · Program Management</div></div>
   </div>
   <div class="tbr">
-    <span style="font-size:10px;color:var(--mt)" id="lu">Data: W31 · Jul 2026</span>
+    <span style="font-size:10px;color:var(--mt)" id="lu">Data: W38 · Sep 2026</span>
     <span id="actuals-badge" style="display:none;background:rgba(248,81,73,.15);color:var(--rd);border:1px solid rgba(248,81,73,.3)" class="bdg">⚡ Actuals loaded</span>
-    <span class="bdg bdg-g"><span class="dot"></span>W31 Live</span>
-    <span class="bdg bdg-b">Jan–Jul Actuals</span>
+    <span class="bdg bdg-g"><span class="dot"></span>W38 Live</span>
+    <span class="bdg bdg-b">Jan–Aug Actuals</span>
   </div>
 </header>
 
@@ -723,7 +723,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Cancellation row: 8% of (signed + pipeline) raw KM
   // Cancellation applies to ALL forecast KM from Jul-Dec:
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
-  var FORECAST_IDX=7; // Aug onwards (index 7) = forecast — cancellation applied Aug-Dec
+  var FORECAST_IDX=8; // Sep onwards (index 8) = forecast — cancellation applied Sep-Decec
   var cancel_km=M.map(function(_,i){
     if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
     return -Math.round((os[i]+sk[i])*CANCEL_RATE); // pipeline not included in cancellation base
@@ -1267,7 +1267,7 @@ var _userEdited=false;
     // KM actuals sync from Supabase:
     // Jan-Jun: never overwrite (closed actuals)
     // Jul-Dec: only update if Supabase value is HIGHER than embedded (protects manual updates)
-    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']; // Oct-Dec open to Supabase updates
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug']; // Sep-Dec open to Supabase updates
     if(Array.isArray(acts)&&acts.length)
       acts.forEach(function(r){
         if(!r.month||!r.km_value)return;
