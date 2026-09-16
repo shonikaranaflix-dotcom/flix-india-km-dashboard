@@ -772,11 +772,11 @@ function bKPI(kOS,sm,pm,fc){
 function bReg(){
   var el=document.getElementById("reg-bd");if(!el)return;
   var rgs=[{l:"North",b:"Aakash",c:"#388bfd"},{l:"West",b:"Aakash",c:"#a371f7"},{l:"South",b:"Syed",c:"#73D700"}];
-  var tots={all:{t:0,s:0,p:0}};rgs.forEach(function(r){tots[r.l]={t:0,s:0,p:0}});
+  var tots={all:{t:0,s:0,p:0,lv:0}};rgs.forEach(function(r){tots[r.l]={t:0,s:0,p:0,lv:0}});
   EXP.forEach(function(r){
     var rg=r.region||"";
-    if(tots[rg]){tots[rg].t++;if(r.signed)tots[rg].s++;else tots[rg].p++}
-    tots.all.t++;if(r.signed)tots.all.s++;else tots.all.p++;
+    if(tots[rg]){tots[rg].t++;if(r.signed)tots[rg].s++;else tots[rg].p++;if(passed(r.go_live))tots[rg].lv++;}
+    tots.all.t++;if(r.signed)tots.all.s++;else tots.all.p++;if(passed(r.go_live))tots.all.lv++;
   });
   var rows=rgs.map(function(r){
     var t=tots[r.l],p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
@@ -785,6 +785,7 @@ function bReg(){
       +'<td style="padding:6px 10px;text-align:center;font-weight:600;border:1px solid rgba(255,255,255,.07)">'+t.t+'</td>'
       +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07)">'+t.s+'</td>'
       +'<td style="padding:6px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07)">'+(t.p||"-")+'</td>'
+      +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07)">⚡'+(t.lv||0)+'</td>'
       +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+cl+';border:1px solid rgba(255,255,255,.07)">'+p+'%</td></tr>';
   });
   var t=tots.all,p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
@@ -794,6 +795,7 @@ function bReg(){
     +'<td style="padding:6px 10px;text-align:center;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+t.t+'</td>'
     +'<td style="padding:6px 10px;text-align:center;color:var(--g);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+t.s+'</td>'
     +'<td style="padding:6px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+t.p+'</td>'
+    +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">⚡'+(t.lv||0)+'</td>'
     +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+cl+';border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+p+'%</td></tr>');
   el.innerHTML=rows.join("");
 }
