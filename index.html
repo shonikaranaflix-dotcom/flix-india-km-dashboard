@@ -264,7 +264,7 @@ input[type=file]{display:none}
           <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Signed ✅</th>
           <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">Pipeline 🔍</th>
           <th style="text-align:center;padding:7px 10px;background:#111827;color:#e6edf3;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">⚡ Live</th>
-          <th style="text-align:center;padding:7px 10px;background:#111827;color:#73D700;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">🚌 Buses Live</th>
+          <th style="text-align:center;padding:7px 10px;background:#111827;color:#73D700;font-size:9px;letter-spacing:.3px;text-transform:uppercase;border:1px solid #2a3140">🚌 Live %</th>
         </tr></thead>
         <tbody id="reg-bd"></tbody>
       </table>
@@ -806,7 +806,7 @@ function bReg(){
       +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07)">'+t.s+'</td>'
       +'<td style="padding:6px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07)">'+(t.p||"-")+'</td>'
       +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07)">⚡'+(t.lv||0)+'</td>'
-      +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:#73D700;border:1px solid rgba(255,255,255,.07)">🚌'+(t.lv*2)+'</td></tr>';
+      +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+( (t.t>0?Math.round(t.lv/t.t*100):0)>=100?"#73D700":(t.t>0?Math.round(t.lv/t.t*100):0)>=50?"#f0b429":"#f85149")+';border:1px solid rgba(255,255,255,.07)">🚌'+(t.t>0?Math.round(t.lv/t.t*100):0)+'%</td></tr>';
   });
   var t=tots.all,p=t.t>0?Math.round(t.s/t.t*100):0,cl=p===100?"#73D700":p>=50?"#f0b429":"#f85149";
   rows.push('<tr style="font-weight:700;background:rgba(255,255,255,.03)">'
@@ -816,7 +816,7 @@ function bReg(){
     +'<td style="padding:6px 10px;text-align:center;color:var(--g);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+t.s+'</td>'
     +'<td style="padding:6px 10px;text-align:center;color:var(--am);border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">'+t.p+'</td>'
     +'<td style="padding:6px 10px;text-align:center;color:var(--g);font-weight:600;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">⚡'+(t.lv||0)+'</td>'
-    +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:#73D700;border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">🚌'+(t.lv*2)+'</td></tr>');
+    +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+( (t.t>0?Math.round(t.lv/t.t*100):0)>=100?"#73D700":(t.t>0?Math.round(t.lv/t.t*100):0)>=50?"#f0b429":"#f85149")+';border:1px solid rgba(255,255,255,.07);border-top:2px solid rgba(255,255,255,.2)">🚌'+(t.t>0?Math.round(t.lv/t.t*100):0)+'%</td></tr>');
   el.innerHTML=rows.join("");
 }
 
