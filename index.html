@@ -1246,7 +1246,7 @@ function renderAll(){
   var nkm=newKM();var sm=nkm.sm,pm=nkm.pm,sw=nkm.sw,pw=nkm.pw;
   var bc=busCounts();var ns=bc.ns,np=bc.np;
   var fc=forecastKM(kOS,sm,pm);
-  bKPI(kOS,sm,pm,fc);bLV(kOS,sm,pm,fc,ns,np);
+  bLV(kOS,sm,pm,fc,ns,np);bKPI(kOS,sm,pm,fc); // bLV first to set window globals
   bC1(kOS,sm,pm);bC2(sw,pw);bC3(ns,np);bC4(fc);bC5(kOS,sm,pm);
   bBB(kOS);bReg();bRts();bWkTbl();bExp();
 }
