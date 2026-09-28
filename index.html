@@ -724,10 +724,10 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // Cancellation row: 8% of (signed + pipeline) raw KM
   // Cancellation applies to ALL forecast KM from Jul-Dec:
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
-  var FORECAST_IDX=8; // Sep onwards (index 8) = forecast — cancellation applied Sep-Decec
+  var FORECAST_IDX=9; // Oct onwards (index 9) = forecast — cancellation on signed KM onlyec
   var cancel_km=M.map(function(_,i){
-    if(i<FORECAST_IDX)return 0; // Jan-Jun are actuals — no cancellation
-    return -Math.round((os[i]+sk[i])*CANCEL_RATE); // pipeline not included in cancellation base
+    if(i<9)return 0; // Jan-Sep are actuals — no cancellation
+    return -Math.round(sk[i]*CANCEL_RATE); // cancel only on signed KM (actuals already net)
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
@@ -741,7 +741,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
 
   // ⑦b FORECAST — SIGNED ONLY (no pipeline KM)
   var fc2_signed=M.map(function(m,i){
-    var raw=(os[i]||0)+(sk[i]||0); // on-sale + signed only (no to-open, no pipeline)
+    var raw=(os[i]||0)+(sk[i]||0); // on-sale actuals + signed future KM
     var cancel=i>=FORECAST_IDX?-Math.round(raw*CANCEL_RATE):0;
     return raw+cancel;
   });
