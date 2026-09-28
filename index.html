@@ -893,7 +893,7 @@ function bExp(){
               ||(r.bp||"").toLowerCase().includes(neS.toLowerCase());
     var mg=neGLF==='all'
       ||(neGLF==='live'&&passed(r.go_live))
-      ||(neGLF!=='all'&&neGLF!=='live'&&(r.go_live||'').startsWith(neGLF));
+      ||(neGLF!=='all'&&neGLF!=='live'&&(r.go_live||'').startsWith(neGLF)&&!passed(r.go_live));
     return mf&&ms&&mg&&(neBDM==="all"||r.bdm===neBDM);
   });
 
