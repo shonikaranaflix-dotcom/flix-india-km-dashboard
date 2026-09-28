@@ -515,7 +515,8 @@ const YEFC={Jan:4551036,Feb:3897253,Mar:4203972,Apr:4081438,May:5398124,Jun:5599
 const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:348,Oct:348,Nov:348,Dec:348};
 const TODAY=new Date().toISOString().slice(0,10);
 const DAYS_PER_WEEK=6; // buses run 6 days/week average
-const CANCEL_RATE=0.08; // 8% cancellation applied to new go-live KM forecast
+const CANCEL_RATE=0.08;
+const KM_CUTOFF='2026-10-01'; // pairs live on/before this date are in on-sale actuals // 8% cancellation applied to new go-live KM forecast
 
 // ── Live data ─────────────────────────────────────────────────────────────────
 
@@ -579,7 +580,7 @@ function newKM(){
   // W43+ goes into toOpen (Existing KM to Open)
   const JUL_CAP_WEEK=42;
   EXP.forEach(r=>{
-    if(passed(r.go_live))return;
+    if(!r.go_live||r.go_live<=KM_CUTOFF)return; // on-sale if live by Oct 1
     const pb=getPb(r);if(!pb)return;
     const pk=pb*2; // raw KM — cancellation shown separately
     const startW=goLiveWeek(r.go_live);
@@ -1267,7 +1268,7 @@ var _userEdited=false;
     // KM actuals sync from Supabase:
     // Jan-Jun: never overwrite (closed actuals)
     // Jul-Dec: only update if Supabase value is HIGHER than embedded (protects manual updates)
-    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; // all months locked — full year actuals
+    var CLOSED_ACTUALS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep']; // Oct-Dec open to Supabase updates
     if(Array.isArray(acts)&&acts.length)
       acts.forEach(function(r){
         if(!r.month||!r.km_value)return;
