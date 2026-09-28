@@ -726,8 +726,9 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
   var FORECAST_IDX=9; // Oct onwards (index 9) = forecast — cancellation on signed KM onlyec
   var cancel_km=M.map(function(_,i){
-    if(i<9)return 0; // Jan-Sep are actuals — no cancellation
-    return -Math.round(sk[i]*CANCEL_RATE); // cancel only on signed KM (actuals already net)
+    if(i<8)return 0; // Jan-Aug are actuals — no cancellation
+    if(i===8)return -226763; // Sep actual cancellation
+    return -Math.round(sk[i]*CANCEL_RATE); // Oct-Dec cancel on signed KM only
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
