@@ -1280,7 +1280,7 @@ function bWkTbl(){
       ?"<span style='font-size:8px;font-weight:600;padding:1px 6px;border-radius:999px;background:rgba(115,215,0,.2);color:#73D700;margin-left:6px'>THIS WEEK</span>"
       :isPast?"<span style='font-size:8px;color:var(--mt);margin-left:6px'>✓ done</span>":"";
     var BD="border:1px solid rgba(255,255,255,.06)";
-    var routes=w.routes.slice(0,3).join(", ")+(w.routes.length>3?" +"+( w.routes.length-3)+" more":"");
+    var routes=w.routes.join(", ");
     return "<tr style='background:"+bg+"'>"
       +"<td style='padding:6px 10px;font-weight:500;color:"+(isPast?"var(--mt)":"var(--tx)")+";"+BD+"'>"+weekLabel+badge+"</td>"
       +"<td style='padding:6px 10px;text-align:center;color:#388bfd;font-weight:600;"+BD+"'>"+(w.North||"–")+"</td>"
