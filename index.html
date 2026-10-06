@@ -273,7 +273,7 @@ input[type=file]{display:none}
 
 
   <div class="card" style="margin-top:12px">
-    <div class="card-hd" style="margin-bottom:10px">GO-LIVE TRACKER — WEEK ON WEEK<span style="font-size:9px;font-weight:400;color:var(--mt);margin-left:8px">all signed pairs · region split</span></div>
+    <div class="card-hd" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between"><span>GO-LIVE TRACKER — WEEK ON WEEK<span style="font-size:9px;font-weight:400;color:var(--mt);margin-left:8px">all signed pairs · region split</span></span><button onclick="dlWkTbl()" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--br);background:var(--cs);color:var(--tx);cursor:pointer">⬇ Excel</button></div>
     <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:11px">
         <thead><tr>
@@ -1194,6 +1194,56 @@ function recalc(){renderAll()}
 // ── Master render ─────────────────────────────────────────────────────────────
 
 // ── Weekly go-live tracker ────────────────────────────────────────────────────
+
+function dlWkTbl(){
+  // Build full data with ALL routes (not truncated)
+  var weeks={};
+  EXP.forEach(function(r){
+    if(!r.signed||!r.go_live) return;
+    var d=new Date(r.go_live);
+    var day=d.getDay(); var diff=day===0?-6:1-day;
+    var mon=new Date(d); mon.setDate(d.getDate()+diff);
+    var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+    var key=mon.toISOString().slice(0,10);
+    if(!weeks[key]) weeks[key]={mon:mon,sun:sun,North:0,West:0,South:0,total:0,buses:0,routes:[]};
+    var rg=r.region||"?";
+    if(weeks[key][rg]!==undefined) weeks[key][rg]++;
+    weeks[key].total++; weeks[key].buses+=2;
+    var label=r.route+(r.pair?" - "+r.pair:"");
+    weeks[key].routes.push(label);
+  });
+
+  var TODAY=new Date(); TODAY.setHours(0,0,0,0);
+  var fmt=function(d){return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();};
+  var rows=[["Week","Status","North","West","South","Total Pairs","Buses","Routes Going Live"]];
+
+  Object.keys(weeks).sort().forEach(function(k){
+    var w=weeks[k];
+    var isPast=w.sun<TODAY; var isCurrent=w.mon<=TODAY&&TODAY<=w.sun;
+    var status=isCurrent?"This Week":isPast?"Done":"Upcoming";
+    rows.push([
+      fmt(w.mon)+" – "+fmt(w.sun),
+      status,
+      w.North||0, w.West||0, w.South||0,
+      w.total, w.buses,
+      w.routes.join(", ")
+    ]);
+  });
+
+  // Build CSV
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      var s=String(c);
+      return s.includes(",")||s.includes('"')||s.includes("\n")?'"'+s.replace(/"/g,'""')+'"':s;
+    }).join(",");
+  }).join("\n");
+
+  var blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
+  var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="GoLive_Tracker_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+}
+
 function bWkTbl(){
   var el=document.getElementById("wk-bd"); if(!el) return;
   // Group pairs by calendar week (Mon-Sun)
