@@ -1262,8 +1262,8 @@ function bWkTbl(){
     if(weeks[key][rg]!==undefined) weeks[key][rg]++;
     weeks[key].total++;
     weeks[key].buses+=2;
-    var label=r.route+(r.pair?" ("+r.pair+")":"");
-    if(!weeks[key].routes.includes(r.route)) weeks[key].routes.push(r.route);
+    var label=(r.route||"")+(r.pair?" · "+r.pair:"");
+    weeks[key].routes.push(label);
   });
 
   var TODAY=new Date(); TODAY.setHours(0,0,0,0);
