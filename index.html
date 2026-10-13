@@ -550,7 +550,7 @@ function goLiveWeek(dateStr){
 // FIX 2: per-bus KM uses 6 days/week — pb already stored as weekly KM/bus
 // If pb=0, derive from NL_DATA median weekly / total_buses
 function getPb(r){
-  if(r.pb&&r.pb>0) return r.pb;
+  if(r.pb!==null&&r.pb!==undefined&&r.pb!==''&&!isNaN(+r.pb)) return +r.pb; // explicit 0 = 0 KM (no fallback)
   const nl=NL_DATA[r.lc];
   if(!nl||!nl.tb) return 0;
   const nz=Object.values(nl.wkm||nl.weekly_km||{}).filter(v=>v>0);
