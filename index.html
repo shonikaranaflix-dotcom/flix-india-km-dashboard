@@ -518,6 +518,7 @@ const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:
 const TODAY=new Date().toISOString().slice(0,10);
 const DAYS_PER_WEEK=6; // buses run 6 days/week average
 const CANCEL_RATE=0.08;
+const CANCELLED_ACT=[423897,212231,139589,303720,251896,291533,163278,196385,259086]; // Jan-Sep actual cancelled KM
 const KM_CUTOFF='2026-10-01'; // pairs live on/before this date are in on-sale actuals // 8% cancellation applied to new go-live KM forecast
 
 // ── Live data ─────────────────────────────────────────────────────────────────
@@ -728,13 +729,12 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
   var FORECAST_IDX=9; // Oct onwards (index 9) = forecast — cancellation on signed KM onlyec
   var cancel_km=M.map(function(_,i){
-    if(i<8)return 0; // Jan-Aug are actuals — no cancellation
-    if(i===8)return -226763; // Sep actual cancellation
+    if(i<9)return -CANCELLED_ACT[i]; // Jan-Sep: actual cancelled KM
     return -Math.round(sk[i]*CANCEL_RATE); // Oct-Dec cancel on signed KM only
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
-  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ 8% Cancellation on new go-live KM</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
+  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Sep actual · Oct–Dec 8% of signed)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
   // Net forecast = raw forecast minus cancellation
   var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);window._tFC_NET=tFC_NET;
