@@ -730,11 +730,11 @@ function bLV(kOS,sm,pm,fc,ns,np){
   var FORECAST_IDX=9; // Oct onwards (index 9) = forecast — cancellation on signed KM onlyec
   var cancel_km=M.map(function(_,i){
     if(i<9)return -CANCELLED_ACT[i]; // Jan-Sep: actual cancelled KM
-    return -Math.round(sk[i]*CANCEL_RATE); // Oct-Dec cancel on signed KM only
+    return -Math.round((os[i]||0)*CANCEL_RATE); // Oct-Dec: 8% of on-sale KM
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
-  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Sep actual · Oct–Dec 8% of signed)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
+  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Sep actual · Oct–Dec 8% of on-sale)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
   // Net forecast = raw forecast minus cancellation
   var fc_net=fc2.map(function(v,i){return i<9?(os[i]||0):v+cancel_km[i]}); // Jan-Sep closed: ⑦ = ① KM on Sale
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);window._tFC_NET=tFC_NET;
@@ -745,7 +745,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // ⑦b FORECAST — SIGNED ONLY (no pipeline KM)
   var fc2_signed=M.map(function(m,i){
     var raw=(os[i]||0)+(sk[i]||0); // on-sale actuals + signed future KM
-    var cancel=i>=FORECAST_IDX?-Math.round((sk[i]||0)*CANCEL_RATE):0; // 8% on signed KM only — on-sale actuals are never cancelled
+    var cancel=i>=FORECAST_IDX?-Math.round((os[i]||0)*CANCEL_RATE):0; // Oct-Dec: 8% of on-sale KM
     return raw+cancel;
   });
   var tFC2_SIGNED=fc2_signed.reduce(function(a,b){return a+b},0);window._tFC2_SIGNED=tFC2_SIGNED;
@@ -782,7 +782,7 @@ function bKPI(kOS,sm,pm,fc){
   var toKPI=toOpen();
   var fc2_signed_kpi=M.map(function(m,i){
     var raw=(kOS[m]||0)+(sm[m]||0);
-    var cancel=i>=9?-Math.round((sm[m]||0)*CANCEL_RATE):0;
+    var cancel=i>=9?-Math.round((kOS[m]||0)*CANCEL_RATE):0;
     return raw+cancel;
   });
   var tFC2S=(window._tFC2_SIGNED||0)>0?window._tFC2_SIGNED:fc2_signed_kpi.reduce(function(a,b){return a+b},0);
