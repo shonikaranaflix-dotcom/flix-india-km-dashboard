@@ -736,7 +736,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
   r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Sep actual · Oct–Dec 8% of signed)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
   // Net forecast = raw forecast minus cancellation
-  var fc_net=fc2.map(function(v,i){return v+cancel_km[i]});
+  var fc_net=fc2.map(function(v,i){return i<9?(os[i]||0):v+cancel_km[i]}); // Jan-Sep closed: ⑦ = ① KM on Sale
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);window._tFC_NET=tFC_NET;
   r.push('<tr class="row-fcst row-div"><td>⑦ FORECAST NET (①+④ − 8% cancellation)</td>'+fc_net.map(nt).join('')+nT(tFC_NET)+'</tr>');
   // YEFC vs full forecast (incl pipeline)
