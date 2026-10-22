@@ -204,6 +204,7 @@ input[type=file]{display:none}
   <button class="tn active" onclick="switchTab('dash',this)">📊 Dashboard</button>
   <button class="tn" onclick="switchTab('exp',this)">🚌 Expansion Editor</button>
         <button class="tn" onclick="switchTab('plan',this)">📋 Expansion Plan</button>
+  <button class="tn" onclick="switchTab('y27',this)">🗓 Expansion 2027</button>
 </nav>
 
 <div class="ub">
@@ -487,6 +488,36 @@ input[type=file]{display:none}
     <div style="margin-top:10px;font-size:10px;color:var(--mt)">⚡ = already live &nbsp;·&nbsp; Progress = signed / total pairs</div>
   </div>
 
+
+
+  </div><!-- close tab-plan -->
+
+  <div id="tab-y27" class="tab-pane" style="padding:20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2027</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Go-live List · Execution Phase</div>
+        <div style="font-size:10px;color:var(--mt);margin-top:3px">Reference list only — not included in any 2026 KM or bus numbers on the Dashboard tab.</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input id="y27-q" class="ipt" placeholder="Search route, line code, partner…" oninput="render27()" style="width:210px;font-family:'DM Sans',sans-serif;padding:5px 9px">
+        <button class="fb y27f active" data-p="all" onclick="set27(this)">All</button>
+        <button class="fb y27f" data-p="Hybrid" onclick="set27(this)">Hybrid</button>
+        <button class="fb y27f" data-p="Sleeper" onclick="set27(this)">Sleeper</button>
+        <button class="fb y27f" data-p="Volvo" onclick="set27(this)">Volvo</button>
+        <button class="fb y27f" data-p="LM" onclick="set27(this)">Last mile / Vans</button>
+        <button onclick="dlTable('y27-wrap','Flix_India_Expansion_2027')" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
+      </div>
+    </div>
+    <div id="y27-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
+      <div id="y27-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr id="y27-hd" style="background:rgba(255,255,255,.03);border-bottom:2px solid var(--br)"></tr></thead>
+        <tbody id="y27-bd"></tbody>
+      </table></div>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--mt)">Buses = pairs × 2 · Blank cells = not yet provided</div>
+  </div>
 
 <div class="fn">Flix India Business Team · KM Dashboard 2026 · Internal Use Only</div>
 
@@ -1188,8 +1219,60 @@ function switchTab(id,btn){
   document.querySelectorAll(".tn").forEach(function(b){b.classList.remove("active")});
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
   if(id==='plan')bPlan();
+  if(id==='y27')render27();
 }
 function recalc(){renderAll()}
+
+// ── Expansion 2027 (static reference list — no dashboard numbers use this) ─────
+const Y27=[{"r":"Delhi to Lucknow","lc":"IN0421E","p":"Pair 1","v":"From Gurgaon","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421E","p":"Pair 2","v":"From Gurgaon","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 4","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 5","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Manali","lc":"PIN0210","p":"Pair 1","v":"","bp":"","bd":"","vo":"Yes","pr":"","lm":""},{"r":"Delhi to Manali","lc":"PIN0210","p":"Pair 2","v":"","bp":"","bd":"","vo":"Yes","pr":"","lm":""},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Varanasi","lc":"IN0426C","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Varanasi) for commercial uplift"},{"r":"Jaipur - Dehradun","lc":"PIN1011","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Jaipur - Dehradun","lc":"PIN1011","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi - Kathgodam","lc":"PIN0320","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Udaipur","lc":"IN0614C","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Delhi to Udaipur","lc":"IN0614C","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Gorakhpur","lc":"IN0423B","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Gorakhpur","lc":"IN0423B","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Gorakhpur","lc":"IN0423C","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Chennai to Hyderabad","lc":"IN5219","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Chennai to Hyderabad","lc":"IN5209","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Chennai to Hyderabad","lc":"IN5209","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Bangalore to Mangalore","lc":"IN4521","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Mangalore","lc":"IN4521","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Pondicherry","lc":"IN4321","p":"Pair 1","v":"","bp":"The Travel Company","bd":"Jan '27 (aligned with NP)","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Pondicherry","lc":"IN4321","p":"Pair 2","v":"","bp":"","bd":"Jan '27 (aligned with NP)","vo":"","pr":"Hybrid","lm":""},{"r":"Hyderabad to Pune","lc":"IN2516","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Hyderabad to Goa","lc":"IN5912","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":"Yes, Vans"},{"r":"Hyderabad to Goa","lc":"IN5912","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":"Yes, Vans"},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 2","v":"","bp":"","bd":"","vo":"Yes","pr":"Sleeper","lm":""},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 3","v":"","bp":"","bd":"","vo":"Yes","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune to Goa","lc":"IN2810B","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Ujjain","lc":"IN2310D","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Ujjain","lc":"IN2310D","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710A","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""}];
+const Y27_DATE="15 Mar 2027",Y27_STATUS="Execution Phase";
+var y27F="all";
+function set27(btn){y27F=btn.dataset.p;document.querySelectorAll(".y27f").forEach(function(b){b.classList.remove("active")});btn.classList.add("active");render27()}
+function y27Match(r){
+  if(y27F==="Hybrid"||y27F==="Sleeper"){if(r.pr!==y27F)return false}
+  if(y27F==="Volvo"){if(r.vo!=="Yes")return false}
+  if(y27F==="LM"){if(!/last mile|van/i.test(r.lm))return false}
+  var q=((document.getElementById("y27-q")||{}).value||"").trim().toLowerCase();
+  if(q&&[r.r,r.lc,r.p,r.v,r.bp,r.bd,r.pr,r.lm].join(" ").toLowerCase().indexOf(q)<0)return false;
+  return true;
+}
+function render27(){
+  var bd=document.getElementById("y27-bd"),hd=document.getElementById("y27-hd"),sm=document.getElementById("y27-summary");
+  if(!bd)return;
+  var th='padding:10px 14px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
+  hd.innerHTML=["Route","Line code","Pair","Route variation","Go-live","Status","Bus partner","BD go-live time","Volvo","Bus product","Last mile / van pickup"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("");
+  var rows=Y27.filter(y27Match);
+  var routes={};rows.forEach(function(r){routes[r.r]=1});
+  var all=Y27, nR=Object.keys(routes).length;
+  var cnt=function(f){return rows.filter(f).length};
+  var card=function(l,v,sub,c){return'<div class="card" style="min-width:150px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+sub+'</div></div>'};
+  sm.innerHTML=card("Routes",nR,"of "+Object.keys(all.reduce(function(a,r){a[r.r]=1;return a},{})).length+" total","var(--g)")
+    +card("Bus pairs",rows.length,"of "+all.length+" total","var(--g)")
+    +card("Buses",rows.length*2,"pairs × 2","var(--g)")
+    +card("Hybrid / Sleeper",cnt(function(r){return r.pr==="Hybrid"})+" / "+cnt(function(r){return r.pr==="Sleeper"}),"pairs by bus product","var(--bl)")
+    +card("Volvo",cnt(function(r){return r.vo==="Yes"}),"pairs","var(--am)")
+    +card("Last mile / Vans",cnt(function(r){return /last mile|van/i.test(r.lm)}),"pairs with pickup requirement","var(--am)")
+    +card("Go-live",Y27_DATE,Y27_STATUS,"var(--tx)");
+  var out=[],prev="";
+  rows.forEach(function(r){
+    var first=r.r!==prev;prev=r.r;
+    var bt=first?"border-top:2px solid rgba(255,255,255,.12);":"border-top:1px solid rgba(255,255,255,.05);";
+    var td=function(v,x){return'<td style="padding:8px 14px;'+bt+(x||"")+'">'+(v?v:'<span style="color:var(--mt)">—</span>')+'</td>'};
+    var pc=r.pr==="Sleeper"?"var(--bl)":r.pr==="Hybrid"?"var(--g)":"var(--mt)";
+    out.push("<tr>"
+      +td(first?'<strong>'+r.r+'</strong>':'<span style="color:var(--mt)">↳</span>')
+      +td(r.lc,"font-family:'DM Mono',monospace;font-size:11px")
+      +td(r.p)+td(r.v)
+      +td(Y27_DATE,"white-space:nowrap")
+      +td('<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:var(--amd);color:var(--am)">'+Y27_STATUS+'</span>')
+      +td(r.bp)+td(r.bd)
+      +td(r.vo==="Yes"?'<span style="color:var(--am);font-weight:600">Yes</span>':"","text-align:center")
+      +td(r.pr?'<span style="color:'+pc+'">'+r.pr+'</span>':"")
+      +td(r.lm,"font-size:11px")+"</tr>");
+  });
+  bd.innerHTML=out.length?out.join(""):'<tr><td colspan="11" style="padding:20px;text-align:center;color:var(--mt)">No pairs match</td></tr>';
+}
+
 
 // ── Master render ─────────────────────────────────────────────────────────────
 
