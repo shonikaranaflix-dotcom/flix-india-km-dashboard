@@ -205,6 +205,7 @@ input[type=file]{display:none}
   <button class="tn" onclick="switchTab('exp',this)">🚌 Expansion Editor</button>
         <button class="tn" onclick="switchTab('plan',this)">📋 Expansion Plan</button>
   <button class="tn" onclick="switchTab('y27',this)">🗓 Expansion 2027</button>
+  <button class="tn" onclick="switchTab('crm',this)">🤝 Leads CRM</button>
 </nav>
 
 <div class="ub">
@@ -519,6 +520,33 @@ input[type=file]{display:none}
       </table></div>
     </div>
     <div style="margin-top:10px;font-size:10px;color:var(--mt)">Buses = pairs × 2 · Default go-live 15 Mar 2027 · ✕ deletes a pair</div>
+  </div>
+
+<div id="tab-crm" class="tab-pane" style="padding:20px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">BUS PARTNER LEADS</div>
+        <div style="font-size:18px;font-weight:700;color:var(--tx)">Leads CRM</div>
+        <div id="crm-note" style="font-size:10px;color:var(--mt);margin-top:3px">Drag a card to change its stage. Moving a lead to Signed fills its pairs in the Expansion 2027 list. Not part of any 2026 KM numbers.</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <input id="crm-q" class="ipt" placeholder="Search partner, route, contact…" oninput="renderCrm()" style="width:200px;font-family:'DM Sans',sans-serif;padding:5px 9px">
+        <button class="fb crmb active" onclick="crmSetBDM('all',this)">All</button>
+        <button class="fb crmb" onclick="crmSetBDM('Aakash',this)">Aakash</button>
+        <button class="fb crmb" onclick="crmSetBDM('Syed',this)">Syed</button>
+        <button class="fb crmv active" data-v="board" onclick="crmSetView('board')">▦ Board</button>
+        <button class="fb crmv" data-v="table" onclick="crmSetView('table')">☰ Table</button>
+        <label style="font-size:10px;color:var(--mt);cursor:pointer"><input type="checkbox" onchange="crmToggleDropped(this)"> Show dropped</label>
+        <button id="crm-add" onclick="crmAdd()" style="display:none;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">＋ Add lead</button>
+        <button onclick="crmDl()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
+      </div>
+    </div>
+    <div id="crm-banner"></div>
+    <div id="crm-cards" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap"></div>
+    <div id="crm-body"></div>
+    <datalist id="crm-routes"></datalist>
+    <div id="crm-modal" onclick="if(event.target===this)crmCloseModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center"></div>
+    <div style="margin-top:12px;font-size:10px;color:var(--mt)">₹/KM = round trip amount ÷ round trip KM · Stages: Connected → Business Model Discussion → Commercial Negotiation → Ops Due Diligence → Signed</div>
   </div>
 
 <div class="fn">Flix India Business Team · KM Dashboard 2026 · Internal Use Only</div>
@@ -1222,6 +1250,7 @@ function switchTab(id,btn){
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
   if(id==='plan')bPlan();
   if(id==='y27')render27();
+  if(id==='crm')renderCrm();
 }
 function recalc(){renderAll()}
 
@@ -1318,14 +1347,14 @@ function render27(){
   if(!bd)return;
   var ed=y27Mode==="db";
   var th='padding:10px 10px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
-  hd.innerHTML=["Route","Line code","Pair","Route variation","Go-live","Status","Bus partner","BD go-live time","Volvo","Bus product","Last mile / van pickup","BDM","Remarks"].concat(ed?[""]:[]).map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("");
+  hd.innerHTML=["Route","Line code","Pair","Route variation","Go-live","Status","Bus partner","BD go-live time","Volvo","Bus product","Last mile / van pickup","BDM","Remarks","CRM commercials"].concat(ed?[""]:[]).map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("");
   var addB=document.getElementById("y27-add");if(addB)addB.style.display=ed?"":"none";
   if(bn){
-    if(y27Mode==="static")bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ Editing is not set up yet — the 2027 table does not exist in Supabase, so this is the read-only starter list. Run <code>setup_expansion_2027.sql</code> once in the Supabase SQL editor, then reload.</div>';
+    if(y27Mode==="static")bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ Editing is not set up yet — the 2027 table does not exist in Supabase, so this is the read-only starter list. Run <code>setup_expansion_2027_and_crm.sql</code> once in the Supabase SQL editor, then reload.</div>';
     else if(y27Mode==="empty")bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--gd);color:var(--g);font-size:11px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">The 2027 table is ready but empty. <button onclick="seed27()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--g);background:transparent;color:var(--g);cursor:pointer">Load starter list ('+Y27_SEED.length+' pairs)</button></div>';
     else bn.innerHTML="";
   }
-  y27Summary();
+  y27Summary();if(typeof crmRoutesList==="function")crmRoutesList();
   var rows=Y27.filter(y27Match);
   var inp=function(r,f,w,ph){return ed?'<input class="ipt" value="'+y27Esc(r[f])+'" data-id="'+r.id+'" data-f="'+f+'" onchange="upd27(this)" placeholder="'+(ph||"")+'" style="width:'+w+'px;font-family:\'DM Sans\',sans-serif;font-size:11px">':(r[f]?y27Esc(r[f]):'<span style="color:var(--mt)">—</span>')};
   var sel=function(r,f,opts,w){if(!ed)return r[f]?y27Esc(r[f]):'<span style="color:var(--mt)">—</span>';var o=opts.slice();if(r[f]&&o.indexOf(r[f])<0)o.push(r[f]);return'<select class="ipt" data-id="'+r.id+'" data-f="'+f+'" onchange="upd27(this)" style="width:'+w+'px;font-size:11px"><option value=""></option>'+o.map(function(x){return'<option'+(x===r[f]?" selected":"")+'>'+y27Esc(x)+'</option>'}).join("")+'</select>'};
@@ -1347,17 +1376,282 @@ function render27(){
       +td(inp(r,"last_mile",190),"font-size:11px")
       +td(sel(r,"bdm",Y27_BDM,80))
       +td(inp(r,"remarks",170,"Remarks"))
+      +td(r.crm_lead_id?'<span style="font-size:10px;color:var(--g);white-space:nowrap">CRM #'+r.crm_lead_id+' · '+crmInr(r.rt_amount)+' · '+(r.rt_km?Number(r.rt_km).toLocaleString("en-IN")+" km":"")+' · ₹'+(r.rate_per_km!=null?Number(r.rate_per_km).toFixed(2):"—")+'/km</span>':'<span style="color:var(--mt)">—</span>')
       +(ed?td('<button onclick="del27('+r.id+')" title="Delete pair" style="background:none;border:none;color:var(--rd);cursor:pointer;font-size:12px">✕</button>'):"")
       +"</tr>");
   });
-  bd.innerHTML=out.length?out.join(""):'<tr><td colspan="14" style="padding:20px;text-align:center;color:var(--mt)">No pairs match</td></tr>';
+  bd.innerHTML=out.length?out.join(""):'<tr><td colspan="15" style="padding:20px;text-align:center;color:var(--mt)">No pairs match</td></tr>';
 }
 function dl27(){
-  var hdr=["Route","Line code","Pair","Route variation","Go-live","Status","Bus partner","BD go-live time","Volvo","Bus product","Last mile / van pickup","BDM","Remarks"];
-  var rows=[hdr].concat(Y27.filter(y27Match).map(function(r){return[r.route,r.lc,r.pair,r.variation,r.go_live,r.status,r.bp,r.bd_golive_time,r.volvo,r.product,r.last_mile,r.bdm,r.remarks].map(function(v){return v==null?"":v})}));
+  var hdr=["Route","Line code","Pair","Route variation","Go-live","Status","Bus partner","BD go-live time","Volvo","Bus product","Last mile / van pickup","BDM","Remarks","Round trip amount","Round trip KM","Rs per KM","CRM lead"];
+  var rows=[hdr].concat(Y27.filter(y27Match).map(function(r){return[r.route,r.lc,r.pair,r.variation,r.go_live,r.status,r.bp,r.bd_golive_time,r.volvo,r.product,r.last_mile,r.bdm,r.remarks,r.rt_amount,r.rt_km,r.rate_per_km==null?"":Math.round(r.rate_per_km*100)/100,r.crm_lead_id?"#"+r.crm_lead_id:""].map(function(v){return v==null?"":v})}));
   var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=hdr.map(function(h,i){return{wch:Math.min(40,Math.max(h.length+2,rows.slice(1).reduce(function(m,r){return Math.max(m,String(r[i]).length+2)},8)))}});
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Expansion 2027");XLSX.writeFile(wb,"Flix_India_Expansion_2027.xlsx");
 }
+
+// ── Leads CRM — stored in Supabase tables crm_leads + crm_stage_history ─────────
+// Separate from all 2026 KM numbers. "Signed" fills unassigned pairs on the matching route in expansion_2027.
+const CRM_STAGES=["Connected","Business Model Discussion","Commercial Negotiation","Ops Due Diligence","Signed"];
+const CRM_COL={"Connected":"var(--bl)","Business Model Discussion":"#a371f7","Commercial Negotiation":"var(--am)","Ops Due Diligence":"#f0883e","Signed":"var(--g)","Dropped":"var(--mt)"};
+var CRM=[],crmMode="loading",crmView="board",crmBDM="all",crmDropped=false,crmHas27=false,crmOpen=null;
+function crmEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
+function crmMsg(t,c){var e=document.getElementById("crm-note");if(e){e.textContent=t;e.style.color=c||"var(--mt)"}}
+function crmInr(n){return n==null||n===""||isNaN(+n)?"—":"₹"+Math.round(+n).toLocaleString("en-IN")}
+function crmRate(l){var a=parseFloat(l.rt_amount),k=parseFloat(l.rt_km);return(a>0&&k>0)?a/k:null}
+function crmRateTxt(l){var r=crmRate(l);return r==null?"—":"₹"+r.toFixed(2)}
+function crmNum(v){if(v===""||v==null)return null;var n=parseFloat(v);return isNaN(n)?null:n}
+function crmNorm(s){return String(s||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[-–—\/,&]/g," ").replace(/\bto\b/g," ").replace(/\s+/g," ").trim()}
+function crmOverdue(l){return l.next_followup&&l.stage!=="Signed"&&l.stage!=="Dropped"&&String(l.next_followup).slice(0,10)<TODAY}
+async function crmApi(table,method,qs,body,needRows){
+  var h=Object.assign({},sbH,{"Prefer":"return=representation"});
+  var r=await fetch(SB_URL+"/rest/v1/"+table+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined});
+  if(!r.ok){var t="";try{t=(await r.text()).slice(0,140)}catch(e){}throw new Error("HTTP "+r.status+" "+t)}
+  var j=await r.json();
+  if(needRows&&(!Array.isArray(j)||!j.length))throw new Error("not saved (no permission?)");
+  return j;
+}
+async function loadCrm(){
+  try{
+    var r=await fetch(SB_URL+"/rest/v1/crm_leads?select=*&order=id",{headers:sbH});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    var d=await r.json();if(!Array.isArray(d))throw new Error("bad");
+    CRM=d;crmMode="db";
+    try{var p=await fetch(SB_URL+"/rest/v1/expansion_2027?select=crm_lead_id&limit=1",{headers:sbH});crmHas27=p.ok}catch(e){crmHas27=false}
+  }catch(e){CRM=[];crmMode="missing"}
+  renderCrm();
+}
+function crmFiltered(){
+  var q=((document.getElementById("crm-q")||{}).value||"").trim().toLowerCase();
+  return CRM.filter(function(l){
+    if(crmBDM!=="all"&&l.bdm!==crmBDM)return false;
+    if(l.stage==="Dropped"&&!crmDropped)return false;
+    if(q&&[l.bp_name,l.routes,l.contact_name,l.contact_phone,l.remarks,l.bdm].join(" ").toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function crmCards(rows){
+  var act=rows.filter(function(l){return l.stage!=="Signed"&&l.stage!=="Dropped"});
+  var rates=act.map(crmRate).filter(function(x){return x!=null});
+  var avg=rates.length?rates.reduce(function(a,b){return a+b},0)/rates.length:null;
+  var od=act.filter(crmOverdue).length;
+  var card=function(l,v,s,c){return'<div class="card" style="min-width:130px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
+  return card("Active leads",act.length,"before Signed","var(--bl)")
+   +card("Pairs in pipeline",act.reduce(function(a,l){return a+(+l.pairs||0)},0),"active leads","var(--bl)")
+   +card("Avg ₹/KM (active)",avg==null?"—":"₹"+avg.toFixed(2),rates.length+" leads with rate","var(--am)")
+   +card("Overdue follow-ups",od,"need a nudge",od?"var(--rd)":"var(--g)")
+   +card("Signed",rows.filter(function(l){return l.stage==="Signed"}).length,"leads → 2027 list","var(--g)");
+}
+function renderCrm(){
+  var bn=document.getElementById("crm-banner"),body=document.getElementById("crm-body"),cs=document.getElementById("crm-cards");
+  if(!body)return;
+  document.querySelectorAll(".crmv").forEach(function(b){b.classList.toggle("active",b.dataset.v===crmView)});
+  var addB=document.getElementById("crm-add");if(addB)addB.style.display=crmMode==="db"?"":"none";
+  if(crmMode==="missing"){
+    bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ The CRM is not set up yet — its Supabase tables do not exist. Run <code>setup_expansion_2027_and_crm.sql</code> once in the Supabase SQL editor, then reload.</div>';
+    cs.innerHTML="";body.innerHTML="";return;
+  }
+  bn.innerHTML=(crmMode==="db"&&!crmHas27)?'<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ The 2027 table needs the updated SQL (new commercial columns). Until it is run, moving a lead to Signed is blocked. Run <code>setup_expansion_2027_and_crm.sql</code> again — it is safe to re-run.</div>':"";
+  crmRoutesList();
+  var rows=crmFiltered();
+  cs.innerHTML=crmCards(rows);
+  body.innerHTML=crmView==="board"?crmBoardHtml(rows):crmTableHtml(rows);
+}
+function crmCardHtml(l){
+  var od=crmOverdue(l);
+  return'<div draggable="true" ondragstart="crmDrag(event,'+l.id+')" onclick="crmOpenModal('+l.id+')" style="cursor:pointer;background:var(--cd);border:1px solid var(--br);border-left:3px solid '+(CRM_COL[l.stage]||"var(--br)")+';border-radius:8px;padding:9px 11px;margin-bottom:8px">'
+   +'<div style="font-weight:700;font-size:12px;color:var(--tx)">'+(crmEsc(l.bp_name)||'<span style="color:var(--mt)">(no name)</span>')+'</div>'
+   +'<div style="font-size:11px;color:var(--mt);margin:2px 0 6px">'+(crmEsc(l.routes)||"— no route —")+'</div>'
+   +'<div style="font-size:11px;display:flex;gap:8px;flex-wrap:wrap"><span>'+crmInr(l.rt_amount)+'</span><span style="color:var(--mt)">'+(l.rt_km?Number(l.rt_km).toLocaleString("en-IN")+" km":"")+'</span><span style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'/km</span></div>'
+   +'<div style="font-size:10px;color:var(--mt);margin-top:6px;display:flex;justify-content:space-between;gap:6px"><span>'+(l.pairs||0)+' pair'+((+l.pairs)===1?"":"s")+(l.bdm?" · "+crmEsc(l.bdm):"")+'</span>'
+   +(l.next_followup?'<span style="color:'+(od?"var(--rd)":"var(--mt)")+'">'+(od?"⚠ ":"")+'F/U '+crmEsc(String(l.next_followup).slice(5,10).split("-").reverse().join("/"))+'</span>':"")+'</div>'
+   +(l.stage==="Signed"&&l.handoff_note?'<div style="font-size:10px;color:var(--g);margin-top:5px">✓ '+crmEsc(l.handoff_note)+'</div>':"")
+   +'</div>';
+}
+function crmBoardHtml(rows){
+  var stages=CRM_STAGES.concat(crmDropped?["Dropped"]:[]);
+  return'<div style="display:grid;grid-template-columns:repeat('+stages.length+',minmax(215px,1fr));gap:10px;overflow-x:auto;align-items:start">'
+   +stages.map(function(st){
+      var items=rows.filter(function(l){return l.stage===st});
+      return'<div ondragover="event.preventDefault()" ondrop="crmDrop(event,\''+st+'\')" style="background:rgba(255,255,255,.02);border:1px solid var(--br);border-radius:10px;padding:10px;min-height:160px">'
+       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:'+CRM_COL[st]+'">'+st+'</span><span style="font-size:10px;color:var(--mt)">'+items.length+'</span></div>'
+       +(items.map(crmCardHtml).join("")||'<div style="font-size:10px;color:var(--mt);text-align:center;padding:14px 0">—</div>')+'</div>';
+    }).join("")+'</div>';
+}
+function crmTableHtml(rows){
+  var th='padding:9px 8px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
+  var heads=["Bus partner","Route","Pairs","Round trip ₹","RT km","₹/KM","Stage","BDM","Contact","Phone","Follow-up","Remarks","2027 list",""];
+  var inp=function(l,f,w,t){return'<input class="ipt" '+(t?'type="'+t+'" ':"")+'value="'+crmEsc(l[f])+'" data-id="'+l.id+'" data-f="'+f+'" onchange="crmUpd(this)" style="width:'+w+'px;font-family:\'DM Sans\',sans-serif;font-size:11px'+(t==="number"?";text-align:right":"")+'"'+(f==="routes"?' list="crm-routes"':"")+'>'};
+  var td=function(v,x){return'<td style="padding:5px 8px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
+  var out=rows.map(function(l){
+    return"<tr>"+td(inp(l,"bp_name",150))+td(inp(l,"routes",190))+td(inp(l,"pairs",52,"number"))+td(inp(l,"rt_amount",96,"number"))+td(inp(l,"rt_km",76,"number"))
+     +td('<span id="crm-rate-'+l.id+'" style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'</span>',"white-space:nowrap")
+     +td(crmStageSel(l,120))+td(crmBdmSel(l))+td(inp(l,"contact_name",110))+td(inp(l,"contact_phone",100))+td(inp(l,"next_followup",125,"date"))+td(inp(l,"remarks",170))
+     +td(l.stage==="Signed"?'<span style="font-size:10px;color:var(--g)">'+(crmEsc(l.handoff_note)||"—")+'</span>':'<span style="color:var(--mt)">—</span>',"max-width:190px")
+     +td('<button onclick="crmDelete('+l.id+')" title="Delete lead" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button>')+"</tr>";
+  }).join("");
+  return'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table id="crm-tbl" style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
+   +heads.map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'
+   +(out||'<tr><td colspan="14" style="padding:20px;text-align:center;color:var(--mt)">No leads yet — click ＋ Add lead</td></tr>')+'</tbody></table></div>';
+}
+function crmStageSel(l,w){
+  return'<select class="ipt" data-id="'+l.id+'" onchange="crmMove('+l.id+',this.value,this)" style="width:'+w+'px;font-size:11px;color:'+(CRM_COL[l.stage]||"inherit")+'">'
+   +CRM_STAGES.concat(["Dropped"]).map(function(s){return'<option'+(s===l.stage?" selected":"")+'>'+s+'</option>'}).join("")+'</select>';
+}
+function crmBdmSel(l){
+  return'<select class="ipt" data-id="'+l.id+'" data-f="bdm" onchange="crmUpd(this)" style="width:78px;font-size:11px"><option value=""></option>'+["Aakash","Syed"].map(function(b){return'<option'+(b===l.bdm?" selected":"")+'>'+b+'</option>'}).join("")+'</select>';
+}
+function crmSetView(v){crmView=v;renderCrm()}
+function crmSetBDM(b,btn){crmBDM=b;document.querySelectorAll(".crmb").forEach(function(x){x.classList.remove("active")});btn.classList.add("active");renderCrm()}
+function crmToggleDropped(el){crmDropped=el.checked;renderCrm()}
+function crmDrag(e,id){e.dataTransfer.setData("text/plain",String(id))}
+function crmDrop(e,stage){e.preventDefault();var id=+e.dataTransfer.getData("text/plain");if(id)crmMove(id,stage)}
+// ── field edits ────────────────────────────────────────────────────────────────
+async function crmUpd(el){
+  var id=+el.dataset.id,f=el.dataset.f,l=CRM.find(function(x){return x.id===id});if(!l||crmMode!=="db")return;
+  var old=l[f],v=el.value;
+  if(f==="pairs")v=Math.max(0,parseInt(v,10)||0);
+  else if(f==="rt_amount"||f==="rt_km")v=crmNum(v);
+  crmMsg("saving…","var(--am)");
+  try{
+    var body={updated_at:new Date().toISOString()};body[f]=v;
+    var j=await crmApi("crm_leads","PATCH","?id=eq."+id,body,true);
+    Object.assign(l,j[0]);crmMsg("✓ Saved — visible to everyone.","var(--g)");
+    var rc=document.getElementById("crm-rate-"+id);if(rc)rc.textContent=crmRateTxt(l);
+    var mr=document.getElementById("crm-m-rate");if(mr&&crmOpen===id)mr.textContent=crmRateTxt(l);
+    document.getElementById("crm-cards").innerHTML=crmCards(crmFiltered());
+    if(l.stage==="Signed"&&(f==="pairs"||f==="routes"||f==="bp_name"||f==="rt_amount"||f==="rt_km"||f==="bdm"))crmMsg("✓ Saved. This lead is Signed — use 'Sync to 2027' in the lead to push the change.","var(--am)");
+  }catch(e){el.value=old==null?"":old;crmMsg("✗ Not saved: "+e.message,"var(--rd)")}
+}
+async function crmAdd(){
+  try{
+    var j=await crmApi("crm_leads","POST","",{stage:"Connected",pairs:1,bdm:crmBDM!=="all"?crmBDM:""},true);
+    CRM.push(j[0]);renderCrm();crmOpenModal(j[0].id);
+  }catch(e){crmMsg("✗ Could not add: "+e.message,"var(--rd)")}
+}
+async function crmDelete(id){
+  var l=CRM.find(function(x){return x.id===id});if(!l)return;
+  if(!confirm("Delete lead '"+(l.bp_name||"(no name)")+"'?"+(l.stage==="Signed"?" Its pairs in the 2027 list will be unassigned.":"")))return;
+  try{
+    if(l.stage==="Signed")await crmUnlink(id);
+    await crmApi("crm_leads","DELETE","?id=eq."+id,null,true);
+    CRM=CRM.filter(function(x){return x.id!==id});crmCloseModal(true);renderCrm();crmMsg("✓ Deleted.","var(--g)");
+  }catch(e){crmMsg("✗ Could not delete: "+e.message,"var(--rd)")}
+}
+// ── stage moves + hand-off to 2027 list ────────────────────────────────────────
+async function crm27Rows(){return crmApi("expansion_2027","GET","?select=*&order=id")}
+async function crmUnlink(id){
+  var rows=await crm27Rows();var mine=rows.filter(function(r){return r.crm_lead_id===id});
+  for(var i=0;i<mine.length;i++)await crmApi("expansion_2027","PATCH","?id=eq."+mine[i].id,{bp:"",rt_amount:null,rt_km:null,rate_per_km:null,crm_lead_id:null,updated_at:new Date().toISOString()},true);
+  return mine.length;
+}
+async function crmHandoff(l,dry){
+  var rows=await crm27Rows(),key=crmNorm(l.routes);
+  var same=rows.filter(function(r){return crmNorm(r.route)===key});
+  var linked=same.filter(function(r){return r.crm_lead_id===l.id});
+  var free=same.filter(function(r){return !(r.bp||"").trim()&&!r.crm_lead_id});
+  var need=Math.max(0,(+l.pairs||0)-linked.length),pick=free.slice(0,need);
+  var res={routeRows:same.length,linked:linked.length,free:free.length,need:need,pick:pick,filled:0};
+  if(dry)return res;
+  var rate=crmRate(l);
+  for(var i=0;i<pick.length;i++){
+    var body={bp:l.bp_name,rt_amount:l.rt_amount,rt_km:l.rt_km,rate_per_km:rate,crm_lead_id:l.id,updated_at:new Date().toISOString()};
+    if(l.bdm&&!(pick[i].bdm||"").trim())body.bdm=l.bdm;
+    await crmApi("expansion_2027","PATCH","?id=eq."+pick[i].id,body,true);res.filled++;
+  }
+  // refresh commercials on already-linked rows
+  for(var k=0;k<linked.length;k++)await crmApi("expansion_2027","PATCH","?id=eq."+linked[k].id,{bp:l.bp_name,rt_amount:l.rt_amount,rt_km:l.rt_km,rate_per_km:rate,updated_at:new Date().toISOString()},true);
+  return res;
+}
+function crmHandoffNote(l,r){
+  var tot=r.linked+r.filled;
+  if(!r.routeRows)return"Route not found in 2027 list";
+  var s=tot+" pair"+(tot===1?"":"s")+" in 2027 list";
+  if(tot<(+l.pairs||0))s+=" ("+((+l.pairs||0)-tot)+" more needed — no free pair)";
+  else if(tot>(+l.pairs||0))s+=" ("+(tot-(+l.pairs||0))+" more than the lead's pairs — release manually in the 2027 tab)";
+  return s;
+}
+async function crmSync(id){
+  var l=CRM.find(function(x){return x.id===id});if(!l||l.stage!=="Signed")return;
+  try{
+    var r=await crmHandoff(l,false);var note=crmHandoffNote(l,r);
+    var j=await crmApi("crm_leads","PATCH","?id=eq."+id,{handoff_note:note,updated_at:new Date().toISOString()},true);
+    Object.assign(l,j[0]);await load27();renderCrm();if(crmOpen===id)crmOpenModal(id);
+    crmMsg("✓ Synced — "+note,r.routeRows&&r.filled+r.linked>=(+l.pairs||0)?"var(--g)":"var(--am)");
+  }catch(e){crmMsg("✗ Sync failed: "+e.message,"var(--rd)")}
+}
+async function crmMove(id,stage,selEl){
+  var l=CRM.find(function(x){return x.id===id});if(!l||crmMode!=="db"||l.stage===stage){renderCrm();return}
+  var old=l.stage,revert=function(){if(selEl)selEl.value=old;renderCrm()};
+  try{
+    var extra={};
+    if(stage==="Signed"){
+      if(!crmHas27){alert("The 2027 table needs the updated SQL before leads can be Signed. See the yellow notice at the top.");return revert()}
+      if(!(l.bp_name||"").trim()||!(l.routes||"").trim()||!(+l.pairs>0)){alert("Before signing, fill in Bus partner, Route and No. of pairs on this lead.");return revert()}
+      var d=await crmHandoff(l,true),msg;
+      if(!d.routeRows)msg="The route '"+l.routes+"' was not found in the 2027 list, so no pairs can be filled.\n\nSign the lead anyway (without updating the 2027 list)?";
+      else if(!d.pick.length&&d.linked)msg="Already linked to "+d.linked+" pair(s). Sign the lead?";
+      else if(!d.pick.length)msg="No unassigned pairs are left on '"+l.routes+"' in the 2027 list.\n\nSign the lead anyway (without updating the 2027 list)?";
+      else msg="Moving to Signed will fill "+d.pick.length+" unassigned pair"+(d.pick.length===1?"":"s")+" on '"+l.routes+"' in the 2027 list with partner '"+l.bp_name+"' and its commercials."+(d.pick.length<d.need?"\n\nNote: the lead has "+d.need+" pair(s) but only "+d.pick.length+" are free.":"")+"\n\nContinue?";
+      if(!confirm(msg))return revert();
+      var r=await crmHandoff(l,false);extra={signed_at:new Date().toISOString(),handoff_note:crmHandoffNote(l,r)};
+    }else if(old==="Signed"){
+      if(!confirm("This lead is currently Signed. Moving it back will remove it from its 2027 pairs (they become unassigned again). Continue?"))return revert();
+      await crmUnlink(id);extra={signed_at:null,handoff_note:""};
+    }
+    var body=Object.assign({stage:stage,updated_at:new Date().toISOString()},extra);
+    var j=await crmApi("crm_leads","PATCH","?id=eq."+id,body,true);Object.assign(l,j[0]);
+    try{await crmApi("crm_stage_history","POST","",{lead_id:id,from_stage:old,to_stage:stage})}catch(e){}
+    if(stage==="Signed"||old==="Signed")await load27();
+    renderCrm();if(crmOpen===id)crmOpenModal(id);
+    crmMsg("✓ Moved to "+stage+(stage==="Signed"?" — "+l.handoff_note:"."),"var(--g)");
+  }catch(e){crmMsg("✗ Could not move: "+e.message,"var(--rd)");revert()}
+}
+// ── lead modal ─────────────────────────────────────────────────────────────────
+async function crmOpenModal(id){
+  var l=CRM.find(function(x){return x.id===id});if(!l)return;crmOpen=id;
+  var m=document.getElementById("crm-modal");
+  var f=function(label,inner){return'<label style="display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--mt);text-transform:uppercase">'+label+inner+'</label>'};
+  var inp=function(k,t,ph){return'<input class="ipt" '+(t?'type="'+t+'" ':"")+'value="'+crmEsc(l[k])+'" data-id="'+id+'" data-f="'+k+'" onchange="crmUpd(this)" placeholder="'+(ph||"")+'"'+(k==="routes"?' list="crm-routes"':"")+' style="width:100%;font-family:\'DM Sans\',sans-serif;font-size:12px;padding:6px 8px;box-sizing:border-box">'};
+  m.innerHTML='<div style="background:var(--cd);border:1px solid var(--br);border-radius:12px;width:min(640px,94vw);max-height:90vh;overflow:auto;padding:20px 22px">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:16px;font-weight:700">Lead details</div><button onclick="crmCloseModal()" style="background:none;border:none;color:var(--mt);font-size:18px;cursor:pointer">✕</button></div>'
+   +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+   +f("Bus partner name",inp("bp_name","","Partner name"))+f("Route (pick from 2027 list)",inp("routes","","e.g. Delhi to Lucknow"))
+   +f("Round trip amount (₹)",inp("rt_amount","number"))+f("Round trip KM",inp("rt_km","number"))
+   +f("₹ / KM (auto)",'<div id="crm-m-rate" style="font-size:16px;font-weight:700;color:var(--am);padding:3px 0">'+crmRateTxt(l)+'</div>')+f("No. of pairs",inp("pairs","number"))
+   +f("Stage",crmStageSel(l,100).replace("width:100px","width:100%"))+f("BDM owner",crmBdmSel(l).replace("width:78px","width:100%"))
+   +f("Contact person",inp("contact_name"))+f("Phone / email",inp("contact_phone"))
+   +f("Next follow-up",inp("next_followup","date"))+f("&nbsp;","")
+   +'</div><div style="margin-top:12px">'+f("Remarks",'<textarea class="ipt" data-id="'+id+'" data-f="remarks" onchange="crmUpd(this)" rows="3" style="width:100%;font-family:\'DM Sans\',sans-serif;font-size:12px;padding:6px 8px;box-sizing:border-box">'+crmEsc(l.remarks)+'</textarea>')+'</div>'
+   +(l.stage==="Signed"?'<div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--gd);color:var(--g);font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>✓ '+(crmEsc(l.handoff_note)||"Signed")+'</span><button onclick="crmSync('+id+')" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--g);background:transparent;color:var(--g);cursor:pointer">↻ Sync to 2027</button></div>':"")
+   +'<div style="margin-top:14px"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;margin-bottom:5px">Stage history</div><div id="crm-hist" style="font-size:11px;color:var(--mt)">loading…</div></div>'
+   +'<div style="margin-top:16px;display:flex;justify-content:space-between"><button onclick="crmDelete('+id+')" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--rd);background:transparent;color:var(--rd);cursor:pointer">Delete lead</button><button onclick="crmCloseModal()" style="font-size:11px;padding:5px 16px;border-radius:6px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">Done</button></div></div>';
+  m.style.display="flex";
+  try{
+    var h=await crmApi("crm_stage_history","GET","?select=*&lead_id=eq."+id+"&order=id");
+    var he=document.getElementById("crm-hist");
+    if(he&&crmOpen===id)he.innerHTML=h.length?h.map(function(x){return'<div>'+crmEsc(String(x.changed_at||"").slice(0,16).replace("T"," "))+' — '+crmEsc(x.from_stage||"new")+' → <strong style="color:var(--tx)">'+crmEsc(x.to_stage)+'</strong></div>'}).join(""):"No stage changes yet.";
+  }catch(e){var he2=document.getElementById("crm-hist");if(he2)he2.textContent="History unavailable."}
+}
+async function crmCloseModal(skip){
+  var id=crmOpen;crmOpen=null;document.getElementById("crm-modal").style.display="none";
+  var l=CRM.find(function(x){return x.id===id});
+  if(!skip&&l&&!(l.bp_name||"").trim()&&!(l.routes||"").trim()&&l.stage==="Connected"){
+    try{await crmApi("crm_leads","DELETE","?id=eq."+id,null,true);CRM=CRM.filter(function(x){return x.id!==id})}catch(e){}
+  }
+  renderCrm();
+}
+function crmDl(){
+  var hdr=["Bus partner","Route","Pairs","Round trip amount","Round trip KM","Rs per KM","Stage","BDM","Contact","Phone","Next follow-up","Remarks","2027 list","Signed on"];
+  var rows=[hdr].concat(crmFiltered().map(function(l){var r=crmRate(l);return[l.bp_name,l.routes,l.pairs,l.rt_amount,l.rt_km,r==null?"":Math.round(r*100)/100,l.stage,l.bdm,l.contact_name,l.contact_phone,l.next_followup,l.remarks,l.handoff_note,l.signed_at?String(l.signed_at).slice(0,10):""].map(function(v){return v==null?"":v})}));
+  var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=hdr.map(function(h){return{wch:Math.max(12,h.length+2)}});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Leads");XLSX.writeFile(wb,"Flix_India_Leads_CRM.xlsx");
+}
+function crmRoutesList(){
+  var dl=document.getElementById("crm-routes");if(!dl)return;
+  var seen={};Y27.forEach(function(r){if(r.route)seen[r.route]=1});
+  dl.innerHTML=Object.keys(seen).map(function(r){return'<option value="'+crmEsc(r)+'">'}).join("");
+}
+
 
 // ── Master render ─────────────────────────────────────────────────────────────
 
@@ -1474,6 +1768,7 @@ function renderAll(){
 // ── Init: render immediately, then sync from Supabase ─────────────────────────
 renderAll();
 load27();
+loadCrm();
 
 // Track whether user has made any edits this session
 var _userEdited=false;
