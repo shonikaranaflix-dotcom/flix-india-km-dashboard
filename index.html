@@ -511,6 +511,13 @@ input[type=file]{display:none}
         <button onclick="dl27()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <span style="font-size:11px;font-weight:500;color:var(--mt)">View as:</span>
+      <button class="bdm-btn active" data-bdm="all" onclick="set27BDM('all',this)">🌐 All BDMs</button>
+      <button class="bdm-btn" data-bdm="Aakash" onclick="set27BDM('Aakash',this)">👤 Aakash — North &amp; West</button>
+      <button class="bdm-btn" data-bdm="Syed" onclick="set27BDM('Syed',this)">👤 Syed — South</button>
+      <button class="bdm-btn" data-bdm="__none" onclick="set27BDM('__none',this)">◌ No BDM yet</button>
+    </div>
     <div id="y27-banner"></div>
     <div id="y27-summary" style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap"></div>
     <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)">
@@ -536,7 +543,7 @@ input[type=file]{display:none}
         <button class="fb crmb" onclick="crmSetBDM('Syed',this)">Syed</button>
         <button class="fb crmv active" data-v="board" onclick="crmSetView('board')">▦ Board</button>
         <button class="fb crmv" data-v="table" onclick="crmSetView('table')">☰ Table</button>
-        <button class="fb crmv" data-v="lc" onclick="crmSetView('lc')">🧭 By line code</button>
+        <button class="fb crmv" data-v="lc" onclick="crmSetView('lc')">🧭 By route</button>
         <label style="font-size:10px;color:var(--mt);cursor:pointer"><input type="checkbox" onchange="crmToggleDropped(this)"> Show dropped</label>
         <button id="crm-add" onclick="crmAdd()" style="display:none;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">＋ Add lead</button>
         <button onclick="crmDl()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
@@ -896,7 +903,7 @@ function setGL(v,btn){
 
 function setBDM(bdm){
   neBDM=bdm;
-  document.querySelectorAll(".bdm-btn").forEach(function(b){b.classList.toggle("active",b.dataset.bdm===bdm)});
+  document.querySelectorAll("#tab-exp .bdm-btn").forEach(function(b){b.classList.toggle("active",b.dataset.bdm===bdm)});
   bRts();bExp();
 }
 function setView(v){
@@ -1258,7 +1265,7 @@ function recalc(){renderAll()}
 // ── Expansion 2027 — editable, stored in Supabase table expansion_2027 ──────────
 // Not used by any 2026 KM / bus calculation. Falls back to a read-only starter list if the table is not set up.
 const Y27_SEED=[{"r":"Delhi to Lucknow","lc":"IN0421E","p":"Pair 1","v":"From Gurgaon","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421E","p":"Pair 2","v":"From Gurgaon","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 4","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Lucknow","lc":"IN0421F","p":"Pair 5","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Lucknow) for commercial uplift"},{"r":"Delhi to Manali","lc":"PIN0210","p":"Pair 1","v":"","bp":"","bd":"","vo":"Yes","pr":"","lm":""},{"r":"Delhi to Manali","lc":"PIN0210","p":"Pair 2","v":"","bp":"","bd":"","vo":"Yes","pr":"","lm":""},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Shimla","lc":"PIN0212","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Varanasi","lc":"IN0426C","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Good to have (from Varanasi) for commercial uplift"},{"r":"Jaipur - Dehradun","lc":"PIN1011","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Jaipur - Dehradun","lc":"PIN1011","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi - Kathgodam","lc":"PIN0320","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Udaipur","lc":"IN0614C","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Delhi to Udaipur","lc":"IN0614C","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Kasol","lc":"PIN0213","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, last mile"},{"r":"Delhi to Gorakhpur","lc":"IN0423B","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Gorakhpur","lc":"IN0423B","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Gorakhpur","lc":"IN0423C","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Delhi to Katra","lc":"PIN0121","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"","lm":"Yes, last mile"},{"r":"Chennai to Hyderabad","lc":"IN5219","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Chennai to Hyderabad","lc":"IN5209","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Chennai to Hyderabad","lc":"IN5209","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Bangalore to Mangalore","lc":"IN4521","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Mangalore","lc":"IN4521","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Pondicherry","lc":"IN4321","p":"Pair 1","v":"","bp":"The Travel Company","bd":"Jan '27 (aligned with NP)","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore to Pondicherry","lc":"IN4321","p":"Pair 2","v":"","bp":"","bd":"Jan '27 (aligned with NP)","vo":"","pr":"Hybrid","lm":""},{"r":"Hyderabad to Pune","lc":"IN2516","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, Vans"},{"r":"Hyderabad to Goa","lc":"IN5912","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":"Yes, Vans"},{"r":"Hyderabad to Goa","lc":"IN5912","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":"Yes, Vans"},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 2","v":"","bp":"","bd":"","vo":"Yes","pr":"Sleeper","lm":""},{"r":"Bangalore to Goa","lc":"IN4611","p":"Pair 3","v":"","bp":"","bd":"","vo":"Yes","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Goa","lc":"IN2820D","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune to Goa","lc":"IN2810B","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Ujjain","lc":"IN2310D","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Mumbai to Ujjain","lc":"IN2310D","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Bangalore - Kozhikode","lc":"IN4445","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":""},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Hyderabad - Vizag- Bhubaneshwar","lc":"IN5710A","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Hybrid","lm":"Yes, vans"},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 1","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 2","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""},{"r":"Pune- Mumbai - Ahmedabad","lc":"IN2220","p":"Pair 3","v":"","bp":"","bd":"","vo":"","pr":"Sleeper","lm":""}];
-var Y27=[],y27Mode="loading",y27F="all";
+var Y27=[],y27Mode="loading",y27F="all",y27BDM="all";
 const Y27_STATUS=["Execution Phase","Contract signed","Planning","On hold","Live","Cancelled"];
 const Y27_PROD=["Hybrid","Sleeper"],Y27_BDM=["Aakash","Syed"];
 function y27Row(r,i){return{id:-(i+1),route:r.r,lc:r.lc,pair:r.p,variation:r.v,go_live:"2027-03-15",status:"Execution Phase",bp:r.bp,bd_golive_time:r.bd,volvo:r.vo,product:r.pr,last_mile:r.lm,bdm:"",remarks:""}}
@@ -1318,9 +1325,11 @@ async function del27(id){
   try{await y27Req("DELETE","?id=eq."+id);Y27=Y27.filter(function(r){return r.id!==id});render27();y27Msg("✓ Deleted.","var(--g)")}
   catch(e){y27Msg("✗ Could not delete: "+e.message,"var(--rd)")}
 }
+function set27BDM(b,btn){y27BDM=b;document.querySelectorAll("#tab-y27 .bdm-btn").forEach(function(x){x.classList.toggle("active",x.dataset.bdm===b)});render27()}
 function set27(btn){y27F=btn.dataset.p;document.querySelectorAll(".y27f").forEach(function(b){b.classList.remove("active")});btn.classList.add("active");render27()}
 function y27Lm(r){return /last mile|van/i.test(r.last_mile||"")}
 function y27Match(r){
+  if(y27BDM==="__none"){if((r.bdm||"").trim())return false}else if(y27BDM!=="all"&&r.bdm!==y27BDM)return false;
   if(y27F==="Hybrid"||y27F==="Sleeper"){if(r.product!==y27F)return false}
   if(y27F==="Volvo"){if(r.volvo!=="Yes")return false}
   if(y27F==="LM"){if(!y27Lm(r))return false}
@@ -1534,35 +1543,47 @@ function crmChip(l){
 }
 function crmLcHtml(rows){
   if(!Y27.length)return'<div style="padding:20px;color:var(--mt)">The 2027 expansion list is empty — load it first on the Expansion 2027 tab.</div>';
-  var order=[],map={};
-  Y27.forEach(function(r){var k=crmLc(r.lc)||"(none)";if(!map[k]){map[k]={lc:r.lc||"—",routes:[],pairs:0};order.push(k)}if(map[k].routes.indexOf(r.route)<0)map[k].routes.push(r.route);map[k].pairs++});
-  var by={},unmapped=[],linkedLc={};
-  Y27.forEach(function(r){if(r.crm_lead_id){(linkedLc[r.crm_lead_id]=linkedLc[r.crm_lead_id]||{})[crmLc(r.lc)||"(none)"]=1}});
+  // one row per route (line name): total pairs planned across its line codes + the BPs against it
+  var order=[],map={},lcRoute={};
+  Y27.forEach(function(r){
+    var k=crmNorm(r.route);if(!k)return;
+    if(!map[k]){map[k]={name:r.route,pairs:0,lcs:{}};order.push(k)}
+    map[k].pairs++;if(r.lc)map[k].lcs[r.lc]=1;
+    if(r.lc)lcRoute[crmLc(r.lc)]=k;
+  });
+  var linkedRt={};
+  Y27.forEach(function(r){if(r.crm_lead_id){(linkedRt[r.crm_lead_id]=linkedRt[r.crm_lead_id]||{})[crmNorm(r.route)]=1}});
+  var by={},unmapped=[];
   rows.forEach(function(l){
-    var ks={},k=crmLc(l.line_code);if(k&&map[k])ks[k]=1;
-    Object.keys(linkedLc[l.id]||{}).forEach(function(x){if(map[x])ks[x]=1});   // signed via route fallback -> use the line code of its pairs
+    var ks={},lk=crmLc(l.line_code),rk=crmNorm(l.routes);
+    if(lk&&lcRoute[lk])ks[lcRoute[lk]]=1;
+    Object.keys(linkedRt[l.id]||{}).forEach(function(x){if(map[x])ks[x]=1});
+    if(!Object.keys(ks).length&&rk&&map[rk])ks[rk]=1;
     var any=Object.keys(ks);
     if(any.length)any.forEach(function(x){(by[x]=by[x]||[]).push(l)});else unmapped.push(l);
   });
   var bpCount=function(a){return(a||[]).filter(function(l){return l.stage!=="Dropped"}).length};
   var withBP=order.filter(function(k){return bpCount(by[k])>0}).length;
-  var total=rows.filter(function(l){return l.stage!=="Dropped"&&unmapped.indexOf(l)<0}).length;
+  var totPairs=order.reduce(function(a,k){return a+map[k].pairs},0);
+  var mapped=rows.filter(function(l){return l.stage!=="Dropped"&&unmapped.indexOf(l)<0}).length;
   var th='padding:9px 12px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
   var td=function(v,x){return'<td style="padding:8px 12px;border-top:1px solid rgba(255,255,255,.06);vertical-align:top;'+(x||"")+'">'+v+'</td>'};
   var legend=CRM_STAGES.map(function(s){return'<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px"><span style="width:8px;height:8px;border-radius:50%;background:'+CRM_COL[s]+'"></span>'+s+'</span>'}).join("");
   var body=order.map(function(k){
     var m=map[k],ls=(by[k]||[]).slice().sort(function(a,b){return CRM_STAGES.indexOf(b.stage)-CRM_STAGES.indexOf(a.stage)});
     var n=bpCount(ls);
-    return"<tr>"+td('<strong style="font-family:\'DM Mono\',monospace">'+crmEsc(m.lc)+'</strong>')+td(crmEsc(m.routes.join(" / ")),"font-size:11px")+td(m.pairs,"text-align:center")
+    return"<tr>"+td('<strong title="Line codes: '+crmEsc(Object.keys(m.lcs).join(", "))+'">'+crmEsc(m.name)+'</strong>')
+     +td(m.pairs,"text-align:center;font-weight:600")
      +td('<span style="font-weight:700;color:'+(n?"var(--g)":"var(--mt)")+'">'+n+'</span>',"text-align:center")
      +td(ls.length?ls.map(crmChip).join(""):'<span style="color:var(--mt);font-size:11px">No BP yet</span>')+"</tr>";
   }).join("");
-  var un=unmapped.length?'<tr><td colspan="5" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 line code ('+unmapped.length+')</td></tr>'
-    +'<tr><td colspan="5" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+(l.line_code?'<span style="font-size:10px;color:var(--rd);margin-right:8px">'+crmEsc(l.line_code)+'?</span>':"")}).join("")+'</td></tr>':"";
-  return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+order.length+' line codes planned in 2027 · <strong style="color:var(--g)">'+withBP+'</strong> with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none · '+total+' BP lead'+(total===1?"":"s")+' mapped</div>'
+  var tot='<tr style="background:rgba(255,255,255,.04);font-weight:700"><td style="padding:9px 12px;border-top:2px solid rgba(255,255,255,.15)">Total</td><td style="padding:9px 12px;text-align:center;border-top:2px solid rgba(255,255,255,.15)">'+totPairs+'</td><td style="padding:9px 12px;text-align:center;color:var(--g);border-top:2px solid rgba(255,255,255,.15)">'+mapped+'</td><td style="border-top:2px solid rgba(255,255,255,.15)"></td></tr>';
+  var un=unmapped.length?'<tr><td colspan="4" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 route ('+unmapped.length+')</td></tr>'
+    +'<tr><td colspan="4" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+'<span style="font-size:10px;color:var(--mt);margin-right:8px">'+crmEsc(crmLabel(l)||"no route / line code")+'</span>'}).join("")+'</td></tr>':"";
+  return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+order.length+' routes planned in 2027 · '+totPairs+' pairs · <strong style="color:var(--g)">'+withBP+'</strong> routes with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none</div>'
    +'<div style="font-size:10px;color:var(--mt);margin-bottom:8px">'+legend+'· click a name to open the lead</div>'
    +'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
-   +["Line code","Route","Pairs planned","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+un+'</tbody></table></div>';
+   +["Route","Pairs planned","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+tot+un+'</tbody></table></div>';
 }
 function crmSetView(v){crmView=v;renderCrm()}
 function crmSetBDM(b,btn){crmBDM=b;document.querySelectorAll(".crmb").forEach(function(x){x.classList.remove("active")});btn.classList.add("active");renderCrm()}
