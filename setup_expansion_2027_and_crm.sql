@@ -49,6 +49,20 @@ create table if not exists public.crm_leads (
   updated_at    timestamptz not null default now(),
   updated_by    text
 );
+-- fields added in v2 (safe to re-run)
+alter table public.crm_leads add column if not exists partner_type    text not null default ''
+  check (partner_type in ('','New','Existing'));
+alter table public.crm_leads add column if not exists lead_source     text not null default ''
+  check (lead_source in ('','Redbus','OEM Referral','BP Referral','Inbound Lead','Others'));
+alter table public.crm_leads add column if not exists operator_type   text not null default ''
+  check (operator_type in ('','Intercity','Trucking Operators','ETS'));
+alter table public.crm_leads add column if not exists aggregator      text not null default ''
+  check (aggregator in ('','Yes','No'));
+alter table public.crm_leads add column if not exists aggregator_name text not null default '';
+alter table public.crm_leads add column if not exists meta_rating     numeric check (meta_rating between 0 and 5);
+alter table public.crm_leads add column if not exists fleet_size      integer check (fleet_size >= 0);
+alter table public.crm_leads add column if not exists line_code       text not null default '';   -- maps to expansion_2027.lc
+
 create table if not exists public.crm_stage_history (
   id          bigint generated always as identity primary key,
   lead_id     bigint not null references public.crm_leads(id) on delete cascade,

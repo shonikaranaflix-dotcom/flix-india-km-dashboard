@@ -530,12 +530,13 @@ input[type=file]{display:none}
         <div id="crm-note" style="font-size:10px;color:var(--mt);margin-top:3px">Drag a card to change its stage. Moving a lead to Signed fills its pairs in the Expansion 2027 list. Not part of any 2026 KM numbers.</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <input id="crm-q" class="ipt" placeholder="Search partner, route, contact…" oninput="renderCrm()" style="width:200px;font-family:'DM Sans',sans-serif;padding:5px 9px">
+        <input id="crm-q" class="ipt" placeholder="Search partner, line code, route…" oninput="renderCrm()" style="width:200px;font-family:'DM Sans',sans-serif;padding:5px 9px">
         <button class="fb crmb active" onclick="crmSetBDM('all',this)">All</button>
         <button class="fb crmb" onclick="crmSetBDM('Aakash',this)">Aakash</button>
         <button class="fb crmb" onclick="crmSetBDM('Syed',this)">Syed</button>
         <button class="fb crmv active" data-v="board" onclick="crmSetView('board')">▦ Board</button>
         <button class="fb crmv" data-v="table" onclick="crmSetView('table')">☰ Table</button>
+        <button class="fb crmv" data-v="lc" onclick="crmSetView('lc')">🧭 By line code</button>
         <label style="font-size:10px;color:var(--mt);cursor:pointer"><input type="checkbox" onchange="crmToggleDropped(this)"> Show dropped</label>
         <button id="crm-add" onclick="crmAdd()" style="display:none;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">＋ Add lead</button>
         <button onclick="crmDl()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
@@ -544,7 +545,7 @@ input[type=file]{display:none}
     <div id="crm-banner"></div>
     <div id="crm-cards" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap"></div>
     <div id="crm-body"></div>
-    <datalist id="crm-routes"></datalist>
+    <datalist id="crm-routes"></datalist><datalist id="crm-lcs"></datalist><datalist id="crm-bps"></datalist>
     <div id="crm-modal" onclick="if(event.target===this)crmCloseModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center"></div>
     <div style="margin-top:12px;font-size:10px;color:var(--mt)">₹/KM = round trip amount ÷ round trip KM · Stages: Connected → Business Model Discussion → Commercial Negotiation → Ops Due Diligence → Signed</div>
   </div>
@@ -1390,10 +1391,14 @@ function dl27(){
 }
 
 // ── Leads CRM — stored in Supabase tables crm_leads + crm_stage_history ─────────
-// Separate from all 2026 KM numbers. "Signed" fills unassigned pairs on the matching route in expansion_2027.
+// Separate from all 2026 KM numbers. "Signed" fills unassigned pairs on the matching line code (or route) in expansion_2027.
 const CRM_STAGES=["Connected","Business Model Discussion","Commercial Negotiation","Ops Due Diligence","Signed"];
+const CRM_SHORT={"Connected":"Connected","Business Model Discussion":"BM Disc.","Commercial Negotiation":"Negotiation","Ops Due Diligence":"Ops DD","Signed":"Signed","Dropped":"Dropped"};
 const CRM_COL={"Connected":"var(--bl)","Business Model Discussion":"#a371f7","Commercial Negotiation":"var(--am)","Ops Due Diligence":"#f0883e","Signed":"var(--g)","Dropped":"var(--mt)"};
-var CRM=[],crmMode="loading",crmView="board",crmBDM="all",crmDropped=false,crmHas27=false,crmOpen=null;
+const CRM_SOURCES=["Redbus","OEM Referral","BP Referral","Inbound Lead","Others"];
+const CRM_OPTYPES=["Intercity","Trucking Operators","ETS"];
+const CRM_NEWSEL=["New","Existing"];
+var CRM=[],crmMode="loading",crmView="board",crmBDM="all",crmDropped=false,crmHas27=false,crmHasNew=true,crmOpen=null;
 function crmEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
 function crmMsg(t,c){var e=document.getElementById("crm-note");if(e){e.textContent=t;e.style.color=c||"var(--mt)"}}
 function crmInr(n){return n==null||n===""||isNaN(+n)?"—":"₹"+Math.round(+n).toLocaleString("en-IN")}
@@ -1401,7 +1406,9 @@ function crmRate(l){var a=parseFloat(l.rt_amount),k=parseFloat(l.rt_km);return(a
 function crmRateTxt(l){var r=crmRate(l);return r==null?"—":"₹"+r.toFixed(2)}
 function crmNum(v){if(v===""||v==null)return null;var n=parseFloat(v);return isNaN(n)?null:n}
 function crmNorm(s){return String(s||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[-–—\/,&]/g," ").replace(/\bto\b/g," ").replace(/\s+/g," ").trim()}
+function crmLc(s){return String(s||"").replace(/\s+/g,"").toUpperCase()}
 function crmOverdue(l){return l.next_followup&&l.stage!=="Signed"&&l.stage!=="Dropped"&&String(l.next_followup).slice(0,10)<TODAY}
+function crmLabel(l){return(l.line_code||"").trim()||(l.routes||"").trim()}
 async function crmApi(table,method,qs,body,needRows){
   var h=Object.assign({},sbH,{"Prefer":"return=representation"});
   var r=await fetch(SB_URL+"/rest/v1/"+table+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined});
@@ -1417,6 +1424,7 @@ async function loadCrm(){
     var d=await r.json();if(!Array.isArray(d))throw new Error("bad");
     CRM=d;crmMode="db";
     try{var p=await fetch(SB_URL+"/rest/v1/expansion_2027?select=crm_lead_id&limit=1",{headers:sbH});crmHas27=p.ok}catch(e){crmHas27=false}
+    try{var q=await fetch(SB_URL+"/rest/v1/crm_leads?select=line_code,partner_type,lead_source,operator_type,aggregator,aggregator_name,meta_rating,fleet_size&limit=1",{headers:sbH});crmHasNew=q.ok}catch(e){crmHasNew=false}
   }catch(e){CRM=[];crmMode="missing"}
   renderCrm();
 }
@@ -1425,7 +1433,7 @@ function crmFiltered(){
   return CRM.filter(function(l){
     if(crmBDM!=="all"&&l.bdm!==crmBDM)return false;
     if(l.stage==="Dropped"&&!crmDropped)return false;
-    if(q&&[l.bp_name,l.routes,l.contact_name,l.contact_phone,l.remarks,l.bdm].join(" ").toLowerCase().indexOf(q)<0)return false;
+    if(q&&[l.bp_name,l.routes,l.line_code,l.contact_name,l.remarks,l.bdm,l.aggregator_name,l.lead_source,l.operator_type].join(" ").toLowerCase().indexOf(q)<0)return false;
     return true;
   });
 }
@@ -1446,23 +1454,27 @@ function renderCrm(){
   if(!body)return;
   document.querySelectorAll(".crmv").forEach(function(b){b.classList.toggle("active",b.dataset.v===crmView)});
   var addB=document.getElementById("crm-add");if(addB)addB.style.display=crmMode==="db"?"":"none";
+  var warn=function(t){return'<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ '+t+'</div>'};
   if(crmMode==="missing"){
-    bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ The CRM is not set up yet — its Supabase tables do not exist. Run <code>setup_expansion_2027_and_crm.sql</code> once in the Supabase SQL editor, then reload.</div>';
+    bn.innerHTML=warn('The CRM is not set up yet — its Supabase tables do not exist. Run <code>setup_expansion_2027_and_crm.sql</code> once in the Supabase SQL editor, then reload.');
     cs.innerHTML="";body.innerHTML="";return;
   }
-  bn.innerHTML=(crmMode==="db"&&!crmHas27)?'<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ The 2027 table needs the updated SQL (new commercial columns). Until it is run, moving a lead to Signed is blocked. Run <code>setup_expansion_2027_and_crm.sql</code> again — it is safe to re-run.</div>':"";
+  bn.innerHTML=((!crmHasNew)?warn('The CRM table is missing the new fields (partner type, lead source, operator type, aggregator, rating, fleet size, line code). Run the updated <code>setup_expansion_2027_and_crm.sql</code> — it is safe to re-run — then reload.'):"")
+    +((!crmHas27)?warn('The 2027 table needs the updated SQL (new commercial columns). Until it is run, moving a lead to Signed is blocked. Run <code>setup_expansion_2027_and_crm.sql</code> again — it is safe to re-run.'):"");
   crmRoutesList();
   var rows=crmFiltered();
   cs.innerHTML=crmCards(rows);
-  body.innerHTML=crmView==="board"?crmBoardHtml(rows):crmTableHtml(rows);
+  body.innerHTML=crmView==="board"?crmBoardHtml(rows):crmView==="lc"?crmLcHtml(rows):crmTableHtml(rows);
 }
 function crmCardHtml(l){
   var od=crmOverdue(l);
+  var tags=[(l.line_code||"").trim(),l.partner_type,l.operator_type].filter(function(x){return x}).map(crmEsc).join(" · ");
   return'<div draggable="true" ondragstart="crmDrag(event,'+l.id+')" onclick="crmOpenModal('+l.id+')" style="cursor:pointer;background:var(--cd);border:1px solid var(--br);border-left:3px solid '+(CRM_COL[l.stage]||"var(--br)")+';border-radius:8px;padding:9px 11px;margin-bottom:8px">'
    +'<div style="font-weight:700;font-size:12px;color:var(--tx)">'+(crmEsc(l.bp_name)||'<span style="color:var(--mt)">(no name)</span>')+'</div>'
-   +'<div style="font-size:11px;color:var(--mt);margin:2px 0 6px">'+(crmEsc(l.routes)||"— no route —")+'</div>'
+   +'<div style="font-size:11px;color:var(--mt);margin:2px 0 4px">'+(crmEsc(l.routes)||"— no route —")+'</div>'
+   +(tags?'<div style="font-size:10px;color:var(--mt);margin-bottom:5px;font-family:\'DM Mono\',monospace">'+tags+'</div>':"")
    +'<div style="font-size:11px;display:flex;gap:8px;flex-wrap:wrap"><span>'+crmInr(l.rt_amount)+'</span><span style="color:var(--mt)">'+(l.rt_km?Number(l.rt_km).toLocaleString("en-IN")+" km":"")+'</span><span style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'/km</span></div>'
-   +'<div style="font-size:10px;color:var(--mt);margin-top:6px;display:flex;justify-content:space-between;gap:6px"><span>'+(l.pairs||0)+' pair'+((+l.pairs)===1?"":"s")+(l.bdm?" · "+crmEsc(l.bdm):"")+'</span>'
+   +'<div style="font-size:10px;color:var(--mt);margin-top:6px;display:flex;justify-content:space-between;gap:6px"><span>'+(l.pairs||0)+' pair'+((+l.pairs)===1?"":"s")+(l.bdm?" · "+crmEsc(l.bdm):"")+(l.fleet_size?" · fleet "+l.fleet_size:"")+'</span>'
    +(l.next_followup?'<span style="color:'+(od?"var(--rd)":"var(--mt)")+'">'+(od?"⚠ ":"")+'F/U '+crmEsc(String(l.next_followup).slice(5,10).split("-").reverse().join("/"))+'</span>':"")+'</div>'
    +(l.stage==="Signed"&&l.handoff_note?'<div style="font-size:10px;color:var(--g);margin-top:5px">✓ '+crmEsc(l.handoff_note)+'</div>':"")
    +'</div>';
@@ -1477,28 +1489,80 @@ function crmBoardHtml(rows){
        +(items.map(crmCardHtml).join("")||'<div style="font-size:10px;color:var(--mt);text-align:center;padding:14px 0">—</div>')+'</div>';
     }).join("")+'</div>';
 }
+// generic field helpers (table = narrow, modal = full width)
+function crmInp(l,f,w,o){
+  o=o||{};
+  return'<input class="ipt" '+(o.t?'type="'+o.t+'" ':"")+(o.t==="number"?'step="'+(o.step||"any")+'" min="0"'+(o.max!=null?' max="'+o.max+'"':"")+' ':"")+'value="'+crmEsc(l[f])+'" data-id="'+l.id+'" data-f="'+f+'" onchange="crmUpd(this)"'
+   +(o.list?' list="'+o.list+'"':"")+(o.ph?' placeholder="'+o.ph+'"':"")+(o.dis?" disabled":"")
+   +' style="width:'+w+';font-family:\'DM Sans\',sans-serif;font-size:'+(o.fs||11)+'px;box-sizing:border-box'+(o.t==="number"?";text-align:right":"")+(o.dis?";opacity:.4":"")+'">';
+}
+function crmSel(l,f,opts,w,o){
+  o=o||{};var cur=l[f]||"",list=opts.slice();if(cur&&list.indexOf(cur)<0)list.push(cur);
+  return'<select class="ipt" data-id="'+l.id+'" data-f="'+f+'" onchange="crmUpd(this)"'+(o.dis?" disabled":"")+' style="width:'+w+';font-size:'+(o.fs||11)+'px;box-sizing:border-box'+(o.dis?";opacity:.4":"")+'"><option value=""></option>'+list.map(function(x){return'<option'+(x===cur?" selected":"")+'>'+crmEsc(x)+'</option>'}).join("")+'</select>';
+}
 function crmTableHtml(rows){
   var th='padding:9px 8px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
-  var heads=["Bus partner","Route","Pairs","Round trip ₹","RT km","₹/KM","Stage","BDM","Contact","Phone","Follow-up","Remarks","2027 list",""];
-  var inp=function(l,f,w,t){return'<input class="ipt" '+(t?'type="'+t+'" ':"")+'value="'+crmEsc(l[f])+'" data-id="'+l.id+'" data-f="'+f+'" onchange="crmUpd(this)" style="width:'+w+'px;font-family:\'DM Sans\',sans-serif;font-size:11px'+(t==="number"?";text-align:right":"")+'"'+(f==="routes"?' list="crm-routes"':"")+'>'};
+  var heads=["Bus partner","New / Existing","Lead source","Operator type","Aggregator?","Aggregator name","Meta rating","Fleet size","Line code","Route","Pairs","Round trip ₹","RT km","₹/KM","Stage","BDM","Contact","Follow-up","Remarks","2027 list",""];
   var td=function(v,x){return'<td style="padding:5px 8px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
   var out=rows.map(function(l){
-    return"<tr>"+td(inp(l,"bp_name",150))+td(inp(l,"routes",190))+td(inp(l,"pairs",52,"number"))+td(inp(l,"rt_amount",96,"number"))+td(inp(l,"rt_km",76,"number"))
+    var isNew=l.partner_type==="New",agg=l.aggregator==="Yes";
+    return"<tr>"+td(crmInp(l,"bp_name","150px",{list:"crm-bps"}))+td(crmSel(l,"partner_type",CRM_NEWSEL,"90px"))
+     +td(crmSel(l,"lead_source",CRM_SOURCES,"115px",{dis:!isNew}))+td(crmSel(l,"operator_type",CRM_OPTYPES,"125px"))
+     +td(crmSel(l,"aggregator",["Yes","No"],"68px"))+td(crmInp(l,"aggregator_name","115px",{dis:!agg,ph:agg?"Aggregator":""}))
+     +td(crmInp(l,"meta_rating","56px",{t:"number",step:"0.1",max:5}))+td(crmInp(l,"fleet_size","62px",{t:"number",step:"1"}))
+     +td(crmInp(l,"line_code","88px",{list:"crm-lcs",ph:"IN0000"}),"font-family:'DM Mono',monospace")+td(crmInp(l,"routes","170px",{list:"crm-routes"}))
+     +td(crmInp(l,"pairs","52px",{t:"number",step:"1"}))+td(crmInp(l,"rt_amount","92px",{t:"number"}))+td(crmInp(l,"rt_km","72px",{t:"number"}))
      +td('<span id="crm-rate-'+l.id+'" style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'</span>',"white-space:nowrap")
-     +td(crmStageSel(l,120))+td(crmBdmSel(l))+td(inp(l,"contact_name",110))+td(inp(l,"contact_phone",100))+td(inp(l,"next_followup",125,"date"))+td(inp(l,"remarks",170))
+     +td(crmStageSel(l,"120px"))+td(crmBdmSel(l,"78px"))+td(crmInp(l,"contact_name","105px"))+td(crmInp(l,"next_followup","125px",{t:"date"}))+td(crmInp(l,"remarks","160px"))
      +td(l.stage==="Signed"?'<span style="font-size:10px;color:var(--g)">'+(crmEsc(l.handoff_note)||"—")+'</span>':'<span style="color:var(--mt)">—</span>',"max-width:190px")
      +td('<button onclick="crmDelete('+l.id+')" title="Delete lead" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button>')+"</tr>";
   }).join("");
   return'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table id="crm-tbl" style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
    +heads.map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'
-   +(out||'<tr><td colspan="14" style="padding:20px;text-align:center;color:var(--mt)">No leads yet — click ＋ Add lead</td></tr>')+'</tbody></table></div>';
+   +(out||'<tr><td colspan="21" style="padding:20px;text-align:center;color:var(--mt)">No leads yet — click ＋ Add lead</td></tr>')+'</tbody></table></div>';
 }
 function crmStageSel(l,w){
-  return'<select class="ipt" data-id="'+l.id+'" onchange="crmMove('+l.id+',this.value,this)" style="width:'+w+'px;font-size:11px;color:'+(CRM_COL[l.stage]||"inherit")+'">'
+  return'<select class="ipt" data-id="'+l.id+'" onchange="crmMove('+l.id+',this.value,this)" style="width:'+w+';font-size:11px;box-sizing:border-box;color:'+(CRM_COL[l.stage]||"inherit")+'">'
    +CRM_STAGES.concat(["Dropped"]).map(function(s){return'<option'+(s===l.stage?" selected":"")+'>'+s+'</option>'}).join("")+'</select>';
 }
-function crmBdmSel(l){
-  return'<select class="ipt" data-id="'+l.id+'" data-f="bdm" onchange="crmUpd(this)" style="width:78px;font-size:11px"><option value=""></option>'+["Aakash","Syed"].map(function(b){return'<option'+(b===l.bdm?" selected":"")+'>'+b+'</option>'}).join("")+'</select>';
+function crmBdmSel(l,w){return crmSel(l,"bdm",["Aakash","Syed"],w)}
+// ── line-code pipeline view ───────────────────────────────────────────────────
+function crmChip(l){
+  var c=CRM_COL[l.stage]||"var(--mt)";
+  return'<span onclick="crmOpenModal('+l.id+')" title="'+crmEsc(l.stage)+(l.pairs?" · "+l.pairs+" pair(s)":"")+'" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin:2px 5px 2px 0;padding:3px 9px;border-radius:999px;border:1px solid '+c+';font-size:11px;color:var(--tx);'+(l.stage==="Dropped"?"opacity:.55;text-decoration:line-through;":"")+'">'
+   +(crmEsc(l.bp_name)||"(no name)")+'<span style="font-size:9px;color:'+c+';text-transform:uppercase;letter-spacing:.03em">'+CRM_SHORT[l.stage]+'</span></span>';
+}
+function crmLcHtml(rows){
+  if(!Y27.length)return'<div style="padding:20px;color:var(--mt)">The 2027 expansion list is empty — load it first on the Expansion 2027 tab.</div>';
+  var order=[],map={};
+  Y27.forEach(function(r){var k=crmLc(r.lc)||"(none)";if(!map[k]){map[k]={lc:r.lc||"—",routes:[],pairs:0};order.push(k)}if(map[k].routes.indexOf(r.route)<0)map[k].routes.push(r.route);map[k].pairs++});
+  var by={},unmapped=[],linkedLc={};
+  Y27.forEach(function(r){if(r.crm_lead_id){(linkedLc[r.crm_lead_id]=linkedLc[r.crm_lead_id]||{})[crmLc(r.lc)||"(none)"]=1}});
+  rows.forEach(function(l){
+    var ks={},k=crmLc(l.line_code);if(k&&map[k])ks[k]=1;
+    Object.keys(linkedLc[l.id]||{}).forEach(function(x){if(map[x])ks[x]=1});   // signed via route fallback -> use the line code of its pairs
+    var any=Object.keys(ks);
+    if(any.length)any.forEach(function(x){(by[x]=by[x]||[]).push(l)});else unmapped.push(l);
+  });
+  var bpCount=function(a){return(a||[]).filter(function(l){return l.stage!=="Dropped"}).length};
+  var withBP=order.filter(function(k){return bpCount(by[k])>0}).length;
+  var total=rows.filter(function(l){return l.stage!=="Dropped"&&unmapped.indexOf(l)<0}).length;
+  var th='padding:9px 12px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
+  var td=function(v,x){return'<td style="padding:8px 12px;border-top:1px solid rgba(255,255,255,.06);vertical-align:top;'+(x||"")+'">'+v+'</td>'};
+  var legend=CRM_STAGES.map(function(s){return'<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px"><span style="width:8px;height:8px;border-radius:50%;background:'+CRM_COL[s]+'"></span>'+s+'</span>'}).join("");
+  var body=order.map(function(k){
+    var m=map[k],ls=(by[k]||[]).slice().sort(function(a,b){return CRM_STAGES.indexOf(b.stage)-CRM_STAGES.indexOf(a.stage)});
+    var n=bpCount(ls);
+    return"<tr>"+td('<strong style="font-family:\'DM Mono\',monospace">'+crmEsc(m.lc)+'</strong>')+td(crmEsc(m.routes.join(" / ")),"font-size:11px")+td(m.pairs,"text-align:center")
+     +td('<span style="font-weight:700;color:'+(n?"var(--g)":"var(--mt)")+'">'+n+'</span>',"text-align:center")
+     +td(ls.length?ls.map(crmChip).join(""):'<span style="color:var(--mt);font-size:11px">No BP yet</span>')+"</tr>";
+  }).join("");
+  var un=unmapped.length?'<tr><td colspan="5" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 line code ('+unmapped.length+')</td></tr>'
+    +'<tr><td colspan="5" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+(l.line_code?'<span style="font-size:10px;color:var(--rd);margin-right:8px">'+crmEsc(l.line_code)+'?</span>':"")}).join("")+'</td></tr>':"";
+  return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+order.length+' line codes planned in 2027 · <strong style="color:var(--g)">'+withBP+'</strong> with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none · '+total+' BP lead'+(total===1?"":"s")+' mapped</div>'
+   +'<div style="font-size:10px;color:var(--mt);margin-bottom:8px">'+legend+'· click a name to open the lead</div>'
+   +'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
+   +["Line code","Route","Pairs planned","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+un+'</tbody></table></div>';
 }
 function crmSetView(v){crmView=v;renderCrm()}
 function crmSetBDM(b,btn){crmBDM=b;document.querySelectorAll(".crmb").forEach(function(x){x.classList.remove("active")});btn.classList.add("active");renderCrm()}
@@ -1508,18 +1572,27 @@ function crmDrop(e,stage){e.preventDefault();var id=+e.dataTransfer.getData("tex
 // ── field edits ────────────────────────────────────────────────────────────────
 async function crmUpd(el){
   var id=+el.dataset.id,f=el.dataset.f,l=CRM.find(function(x){return x.id===id});if(!l||crmMode!=="db")return;
-  var old=l[f],v=el.value;
+  var old=l[f],v=el.value,body={updated_at:new Date().toISOString()};
   if(f==="pairs")v=Math.max(0,parseInt(v,10)||0);
   else if(f==="rt_amount"||f==="rt_km")v=crmNum(v);
+  else if(f==="fleet_size"){v=crmNum(v);v=v==null?null:Math.max(0,Math.round(v))}
+  else if(f==="meta_rating"){v=crmNum(v);if(v!=null&&(v<0||v>5)){el.value=old==null?"":old;return crmMsg("✗ Meta rating must be between 0 and 5.","var(--rd)")}}
+  else if(f==="line_code"){
+    v=crmLc(v);var y=v?Y27.find(function(r){return crmLc(r.lc)===v}):null;
+    if(y&&!(l.routes||"").trim())body.routes=y.route;
+  }
+  if(f==="partner_type"&&v!=="New")body.lead_source="";
+  if(f==="aggregator"&&v!=="Yes")body.aggregator_name="";
+  body[f]=v;
   crmMsg("saving…","var(--am)");
   try{
-    var body={updated_at:new Date().toISOString()};body[f]=v;
     var j=await crmApi("crm_leads","PATCH","?id=eq."+id,body,true);
-    Object.assign(l,j[0]);crmMsg("✓ Saved — visible to everyone.","var(--g)");
+    Object.assign(l,j[0]);crmMsg("✓ Saved — visible to everyone."+(body.routes&&f==="line_code"?" Route filled from the 2027 list.":""),"var(--g)");
+    if(f==="partner_type"||f==="aggregator"||(f==="line_code"&&body.routes)){if(crmOpen===id)crmOpenModal(id);else renderCrm();return}
     var rc=document.getElementById("crm-rate-"+id);if(rc)rc.textContent=crmRateTxt(l);
     var mr=document.getElementById("crm-m-rate");if(mr&&crmOpen===id)mr.textContent=crmRateTxt(l);
     document.getElementById("crm-cards").innerHTML=crmCards(crmFiltered());
-    if(l.stage==="Signed"&&(f==="pairs"||f==="routes"||f==="bp_name"||f==="rt_amount"||f==="rt_km"||f==="bdm"))crmMsg("✓ Saved. This lead is Signed — use 'Sync to 2027' in the lead to push the change.","var(--am)");
+    if(l.stage==="Signed"&&(f==="pairs"||f==="routes"||f==="line_code"||f==="bp_name"||f==="rt_amount"||f==="rt_km"||f==="bdm"))crmMsg("✓ Saved. This lead is Signed — use 'Sync to 2027' in the lead to push the change.","var(--am)");
   }catch(e){el.value=old==null?"":old;crmMsg("✗ Not saved: "+e.message,"var(--rd)")}
 }
 async function crmAdd(){
@@ -1545,12 +1618,13 @@ async function crmUnlink(id){
   return mine.length;
 }
 async function crmHandoff(l,dry){
-  var rows=await crm27Rows(),key=crmNorm(l.routes);
-  var same=rows.filter(function(r){return crmNorm(r.route)===key});
+  var rows=await crm27Rows(),lk=crmLc(l.line_code),rk=crmNorm(l.routes),by="line code";
+  var same=lk?rows.filter(function(r){return crmLc(r.lc)===lk}):[];
+  if(!same.length&&rk){same=rows.filter(function(r){return crmNorm(r.route)===rk});by="route"}
   var linked=same.filter(function(r){return r.crm_lead_id===l.id});
   var free=same.filter(function(r){return !(r.bp||"").trim()&&!r.crm_lead_id});
   var need=Math.max(0,(+l.pairs||0)-linked.length),pick=free.slice(0,need);
-  var res={routeRows:same.length,linked:linked.length,free:free.length,need:need,pick:pick,filled:0};
+  var res={routeRows:same.length,by:by,linked:linked.length,free:free.length,need:need,pick:pick,filled:0};
   if(dry)return res;
   var rate=crmRate(l);
   for(var i=0;i<pick.length;i++){
@@ -1558,16 +1632,15 @@ async function crmHandoff(l,dry){
     if(l.bdm&&!(pick[i].bdm||"").trim())body.bdm=l.bdm;
     await crmApi("expansion_2027","PATCH","?id=eq."+pick[i].id,body,true);res.filled++;
   }
-  // refresh commercials on already-linked rows
   for(var k=0;k<linked.length;k++)await crmApi("expansion_2027","PATCH","?id=eq."+linked[k].id,{bp:l.bp_name,rt_amount:l.rt_amount,rt_km:l.rt_km,rate_per_km:rate,updated_at:new Date().toISOString()},true);
   return res;
 }
 function crmHandoffNote(l,r){
   var tot=r.linked+r.filled;
-  if(!r.routeRows)return"Route not found in 2027 list";
-  var s=tot+" pair"+(tot===1?"":"s")+" in 2027 list";
-  if(tot<(+l.pairs||0))s+=" ("+((+l.pairs||0)-tot)+" more needed — no free pair)";
-  else if(tot>(+l.pairs||0))s+=" ("+(tot-(+l.pairs||0))+" more than the lead's pairs — release manually in the 2027 tab)";
+  if(!r.routeRows)return"Line code / route not found in 2027 list";
+  var s=tot+" pair"+(tot===1?"":"s")+" in 2027 list ("+(r.by==="line code"?l.line_code:l.routes)+")";
+  if(tot<(+l.pairs||0))s+=" — "+((+l.pairs||0)-tot)+" more needed, no free pair";
+  else if(tot>(+l.pairs||0))s+=" — "+(tot-(+l.pairs||0))+" more than the lead's pairs, release manually in the 2027 tab";
   return s;
 }
 async function crmSync(id){
@@ -1586,12 +1659,12 @@ async function crmMove(id,stage,selEl){
     var extra={};
     if(stage==="Signed"){
       if(!crmHas27){alert("The 2027 table needs the updated SQL before leads can be Signed. See the yellow notice at the top.");return revert()}
-      if(!(l.bp_name||"").trim()||!(l.routes||"").trim()||!(+l.pairs>0)){alert("Before signing, fill in Bus partner, Route and No. of pairs on this lead.");return revert()}
-      var d=await crmHandoff(l,true),msg;
-      if(!d.routeRows)msg="The route '"+l.routes+"' was not found in the 2027 list, so no pairs can be filled.\n\nSign the lead anyway (without updating the 2027 list)?";
+      if(!(l.bp_name||"").trim()||!crmLabel(l)||!(+l.pairs>0)){alert("Before signing, fill in Bus partner, Line code (or Route) and No. of pairs on this lead.");return revert()}
+      var d=await crmHandoff(l,true),lab=d.by==="line code"?"line code "+l.line_code:"route '"+l.routes+"'",msg;
+      if(!d.routeRows)msg="The "+(l.line_code?"line code '"+l.line_code+"'"+(l.routes?" / route '"+l.routes+"'":""):"route '"+l.routes+"'")+" was not found in the 2027 list, so no pairs can be filled.\n\nSign the lead anyway (without updating the 2027 list)?";
       else if(!d.pick.length&&d.linked)msg="Already linked to "+d.linked+" pair(s). Sign the lead?";
-      else if(!d.pick.length)msg="No unassigned pairs are left on '"+l.routes+"' in the 2027 list.\n\nSign the lead anyway (without updating the 2027 list)?";
-      else msg="Moving to Signed will fill "+d.pick.length+" unassigned pair"+(d.pick.length===1?"":"s")+" on '"+l.routes+"' in the 2027 list with partner '"+l.bp_name+"' and its commercials."+(d.pick.length<d.need?"\n\nNote: the lead has "+d.need+" pair(s) but only "+d.pick.length+" are free.":"")+"\n\nContinue?";
+      else if(!d.pick.length)msg="No unassigned pairs are left on "+lab+" in the 2027 list.\n\nSign the lead anyway (without updating the 2027 list)?";
+      else msg="Moving to Signed will fill "+d.pick.length+" unassigned pair"+(d.pick.length===1?"":"s")+" on "+lab+" in the 2027 list with partner '"+l.bp_name+"' and its commercials."+(d.by==="route"&&l.line_code?"\n\nNote: the line code '"+l.line_code+"' was not found, so the route was used.":"")+(d.pick.length<d.need?"\n\nNote: the lead has "+d.need+" pair(s) but only "+d.pick.length+" are free.":"")+"\n\nContinue?";
       if(!confirm(msg))return revert();
       var r=await crmHandoff(l,false);extra={signed_at:new Date().toISOString(),handoff_note:crmHandoffNote(l,r)};
     }else if(old==="Signed"){
@@ -1611,16 +1684,19 @@ async function crmOpenModal(id){
   var l=CRM.find(function(x){return x.id===id});if(!l)return;crmOpen=id;
   var m=document.getElementById("crm-modal");
   var f=function(label,inner){return'<label style="display:flex;flex-direction:column;gap:3px;font-size:10px;color:var(--mt);text-transform:uppercase">'+label+inner+'</label>'};
-  var inp=function(k,t,ph){return'<input class="ipt" '+(t?'type="'+t+'" ':"")+'value="'+crmEsc(l[k])+'" data-id="'+id+'" data-f="'+k+'" onchange="crmUpd(this)" placeholder="'+(ph||"")+'"'+(k==="routes"?' list="crm-routes"':"")+' style="width:100%;font-family:\'DM Sans\',sans-serif;font-size:12px;padding:6px 8px;box-sizing:border-box">'};
-  m.innerHTML='<div style="background:var(--cd);border:1px solid var(--br);border-radius:12px;width:min(640px,94vw);max-height:90vh;overflow:auto;padding:20px 22px">'
+  var isNew=l.partner_type==="New",agg=l.aggregator==="Yes",W="100%",fs=12;
+  m.innerHTML='<div style="background:var(--cd);border:1px solid var(--br);border-radius:12px;width:min(680px,94vw);max-height:90vh;overflow:auto;padding:20px 22px">'
    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:16px;font-weight:700">Lead details</div><button onclick="crmCloseModal()" style="background:none;border:none;color:var(--mt);font-size:18px;cursor:pointer">✕</button></div>'
    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-   +f("Bus partner name",inp("bp_name","","Partner name"))+f("Route (pick from 2027 list)",inp("routes","","e.g. Delhi to Lucknow"))
-   +f("Round trip amount (₹)",inp("rt_amount","number"))+f("Round trip KM",inp("rt_km","number"))
-   +f("₹ / KM (auto)",'<div id="crm-m-rate" style="font-size:16px;font-weight:700;color:var(--am);padding:3px 0">'+crmRateTxt(l)+'</div>')+f("No. of pairs",inp("pairs","number"))
-   +f("Stage",crmStageSel(l,100).replace("width:100px","width:100%"))+f("BDM owner",crmBdmSel(l).replace("width:78px","width:100%"))
-   +f("Contact person",inp("contact_name"))+f("Phone / email",inp("contact_phone"))
-   +f("Next follow-up",inp("next_followup","date"))+f("&nbsp;","")
+   +f("Bus partner name",crmInp(l,"bp_name",W,{list:"crm-bps",ph:"Partner name",fs:fs}))+f("New partner / Existing BP",crmSel(l,"partner_type",CRM_NEWSEL,W,{fs:fs}))
+   +f("Lead source"+(isNew?"":" (new partners only)"),crmSel(l,"lead_source",CRM_SOURCES,W,{dis:!isNew,fs:fs}))+f("Type of operator",crmSel(l,"operator_type",CRM_OPTYPES,W,{fs:fs}))
+   +f("Working with an aggregator?",crmSel(l,"aggregator",["Yes","No"],W,{fs:fs}))+f("Aggregator name"+(agg?"":" (if yes)"),crmInp(l,"aggregator_name",W,{dis:!agg,fs:fs,ph:agg?"e.g. Redbus":""}))
+   +f("Meta rating (0–5)",crmInp(l,"meta_rating",W,{t:"number",step:"0.1",max:5,fs:fs,ph:"e.g. 4.2"}))+f("Fleet size",crmInp(l,"fleet_size",W,{t:"number",step:"1",fs:fs}))
+   +f("Line code (maps to the 2027 list)",crmInp(l,"line_code",W,{list:"crm-lcs",ph:"e.g. IN0421E",fs:fs}))+f("Route (filled from line code)",crmInp(l,"routes",W,{list:"crm-routes",ph:"e.g. Delhi to Lucknow",fs:fs}))
+   +f("Round trip amount (₹)",crmInp(l,"rt_amount",W,{t:"number",fs:fs}))+f("Round trip KM",crmInp(l,"rt_km",W,{t:"number",fs:fs}))
+   +f("₹ / KM (auto)",'<div id="crm-m-rate" style="font-size:16px;font-weight:700;color:var(--am);padding:3px 0">'+crmRateTxt(l)+'</div>')+f("No. of pairs",crmInp(l,"pairs",W,{t:"number",step:"1",fs:fs}))
+   +f("Stage",crmStageSel(l,"100%"))+f("BDM owner",crmBdmSel(l,"100%"))
+   +f("Contact person",crmInp(l,"contact_name",W,{fs:fs}))+f("Next follow-up",crmInp(l,"next_followup",W,{t:"date",fs:fs}))
    +'</div><div style="margin-top:12px">'+f("Remarks",'<textarea class="ipt" data-id="'+id+'" data-f="remarks" onchange="crmUpd(this)" rows="3" style="width:100%;font-family:\'DM Sans\',sans-serif;font-size:12px;padding:6px 8px;box-sizing:border-box">'+crmEsc(l.remarks)+'</textarea>')+'</div>'
    +(l.stage==="Signed"?'<div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--gd);color:var(--g);font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>✓ '+(crmEsc(l.handoff_note)||"Signed")+'</span><button onclick="crmSync('+id+')" style="font-size:10px;padding:4px 10px;border-radius:6px;border:1px solid var(--g);background:transparent;color:var(--g);cursor:pointer">↻ Sync to 2027</button></div>':"")
    +'<div style="margin-top:14px"><div style="font-size:10px;color:var(--mt);text-transform:uppercase;margin-bottom:5px">Stage history</div><div id="crm-hist" style="font-size:11px;color:var(--mt)">loading…</div></div>'
@@ -1635,21 +1711,25 @@ async function crmOpenModal(id){
 async function crmCloseModal(skip){
   var id=crmOpen;crmOpen=null;document.getElementById("crm-modal").style.display="none";
   var l=CRM.find(function(x){return x.id===id});
-  if(!skip&&l&&!(l.bp_name||"").trim()&&!(l.routes||"").trim()&&l.stage==="Connected"){
+  if(!skip&&l&&!(l.bp_name||"").trim()&&!(l.routes||"").trim()&&!(l.line_code||"").trim()&&l.stage==="Connected"){
     try{await crmApi("crm_leads","DELETE","?id=eq."+id,null,true);CRM=CRM.filter(function(x){return x.id!==id})}catch(e){}
   }
   renderCrm();
 }
 function crmDl(){
-  var hdr=["Bus partner","Route","Pairs","Round trip amount","Round trip KM","Rs per KM","Stage","BDM","Contact","Phone","Next follow-up","Remarks","2027 list","Signed on"];
-  var rows=[hdr].concat(crmFiltered().map(function(l){var r=crmRate(l);return[l.bp_name,l.routes,l.pairs,l.rt_amount,l.rt_km,r==null?"":Math.round(r*100)/100,l.stage,l.bdm,l.contact_name,l.contact_phone,l.next_followup,l.remarks,l.handoff_note,l.signed_at?String(l.signed_at).slice(0,10):""].map(function(v){return v==null?"":v})}));
+  var hdr=["Bus partner","New / Existing","Lead source","Operator type","Working with aggregator","Aggregator name","Meta rating","Fleet size","Line code","Route","Pairs","Round trip amount","Round trip KM","Rs per KM","Stage","BDM","Contact","Next follow-up","Remarks","2027 list","Signed on"];
+  var rows=[hdr].concat(crmFiltered().map(function(l){var r=crmRate(l);return[l.bp_name,l.partner_type,l.lead_source,l.operator_type,l.aggregator,l.aggregator_name,l.meta_rating,l.fleet_size,l.line_code,l.routes,l.pairs,l.rt_amount,l.rt_km,r==null?"":Math.round(r*100)/100,l.stage,l.bdm,l.contact_name,l.next_followup,l.remarks,l.handoff_note,l.signed_at?String(l.signed_at).slice(0,10):""].map(function(v){return v==null?"":v})}));
   var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=hdr.map(function(h){return{wch:Math.max(12,h.length+2)}});
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Leads");XLSX.writeFile(wb,"Flix_India_Leads_CRM.xlsx");
 }
 function crmRoutesList(){
-  var dl=document.getElementById("crm-routes");if(!dl)return;
-  var seen={};Y27.forEach(function(r){if(r.route)seen[r.route]=1});
-  dl.innerHTML=Object.keys(seen).map(function(r){return'<option value="'+crmEsc(r)+'">'}).join("");
+  var dl=document.getElementById("crm-routes"),dl2=document.getElementById("crm-lcs"),dl3=document.getElementById("crm-bps");
+  var rs={},lcs={},bps={};
+  Y27.forEach(function(r){if(r.route)rs[r.route]=1;if(r.lc&&!lcs[r.lc])lcs[r.lc]=r.route});
+  if(typeof EXP!=="undefined")EXP.forEach(function(r){var b=(r.bp||"").trim();if(b)bps[b]=1});
+  if(dl)dl.innerHTML=Object.keys(rs).map(function(r){return'<option value="'+crmEsc(r)+'">'}).join("");
+  if(dl2)dl2.innerHTML=Object.keys(lcs).map(function(k){return'<option value="'+crmEsc(k)+'">'+crmEsc(lcs[k])+'</option>'}).join("");
+  if(dl3)dl3.innerHTML=Object.keys(bps).sort().map(function(b){return'<option value="'+crmEsc(b)+'">'}).join("");
 }
 
 
