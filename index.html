@@ -1574,16 +1574,19 @@ function crmChip(l){
 }
 function crmLcHtml(rows){
   if(!Y27.length)return'<div style="padding:20px;color:var(--mt)">The 2027 expansion list is empty — load it first on the Expansion 2027 tab.</div>';
+  // month filter: only the expansion planned for that month (pairs, months, BPs and totals all follow it)
+  var src=crmMonth==="all"?Y27:Y27.filter(function(r){return y27Month(r)===crmMonth});
+  if(!src.length)return'<div style="padding:20px;color:var(--mt)">No expansion planned for '+crmEsc(crmMonth)+' 2027.</div>';
   // one row per route (line name): total pairs planned across its line codes + the BPs against it
   var order=[],map={},lcRoute={};
-  Y27.forEach(function(r){
+  src.forEach(function(r){
     var k=crmNorm(r.route);if(!k)return;
     if(!map[k]){map[k]={name:r.route,pairs:0,lcs:{},months:{}};order.push(k)}
     map[k].pairs++;var mm=y27Month(r);if(mm)map[k].months[mm]=(map[k].months[mm]||0)+1;if(r.lc)map[k].lcs[r.lc]=1;
     if(r.lc)lcRoute[crmLc(r.lc)]=k;
   });
   var linkedRt={};
-  Y27.forEach(function(r){if(r.crm_lead_id){(linkedRt[r.crm_lead_id]=linkedRt[r.crm_lead_id]||{})[crmNorm(r.route)]=1}});
+  src.forEach(function(r){if(r.crm_lead_id){(linkedRt[r.crm_lead_id]=linkedRt[r.crm_lead_id]||{})[crmNorm(r.route)]=1}});
   var by={},unmapped=[];
   rows.forEach(function(l){
     var ks={},lk=crmLc(l.line_code),rk=crmNorm(l.routes);
@@ -1609,10 +1612,10 @@ function crmLcHtml(rows){
      +td('<span style="font-weight:700;color:'+(n?"var(--g)":"var(--mt)")+'">'+n+'</span>',"text-align:center")
      +td(ls.length?ls.map(crmChip).join(""):'<span style="color:var(--mt);font-size:11px">No BP yet</span>')+"</tr>";
   }).join("");
-  var tot='<tr style="background:rgba(255,255,255,.04);font-weight:700"><td style="padding:9px 12px;border-top:2px solid rgba(255,255,255,.15)">Total</td><td style="padding:9px 12px;text-align:center;border-top:2px solid rgba(255,255,255,.15)">'+totPairs+'</td><td style="padding:9px 12px;text-align:center;color:var(--g);border-top:2px solid rgba(255,255,255,.15)">'+mapped+'</td><td style="border-top:2px solid rgba(255,255,255,.15)"></td></tr>';
+  var tot='<tr style="background:rgba(255,255,255,.04);font-weight:700"><td style="padding:9px 12px;border-top:2px solid rgba(255,255,255,.15)">Total</td><td style="padding:9px 12px;text-align:center;border-top:2px solid rgba(255,255,255,.15)">'+totPairs+'</td><td style="border-top:2px solid rgba(255,255,255,.15)"></td><td style="padding:9px 12px;text-align:center;color:var(--g);border-top:2px solid rgba(255,255,255,.15)">'+mapped+'</td><td style="border-top:2px solid rgba(255,255,255,.15)"></td></tr>';
   var un=unmapped.length?'<tr><td colspan="5" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 route ('+unmapped.length+')</td></tr>'
     +'<tr><td colspan="5" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+'<span style="font-size:10px;color:var(--mt);margin-right:8px">'+crmEsc(crmLabel(l)||"no route / line code")+'</span>'}).join("")+'</td></tr>':"";
-  return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+order.length+' routes planned in 2027 · '+totPairs+' pairs · <strong style="color:var(--g)">'+withBP+'</strong> routes with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none</div>'
+  return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+(crmMonth==="all"?"":'<strong style="color:var(--g)">'+crmEsc(crmMonth)+' 2027</strong> · ')+order.length+' routes planned'+(crmMonth==="all"?" in 2027":"")+' · '+totPairs+' pairs · <strong style="color:var(--g)">'+withBP+'</strong> routes with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none</div>'
    +'<div style="font-size:10px;color:var(--mt);margin-bottom:8px">'+legend+'· click a name to open the lead</div>'
    +'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
    +["Route","Pairs planned","Expansion months (pairs)","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+tot+un+'</tbody></table></div>';
