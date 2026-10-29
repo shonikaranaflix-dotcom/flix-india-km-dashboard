@@ -452,7 +452,7 @@ input[type=file]{display:none}
 </main>
 </div>
 
-  <div id="tab-plan" class="tab-pane" style="padding:20px 0">
+  <div id="tab-plan" class="tab-pane" style="padding:16px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2026</div>
@@ -492,7 +492,7 @@ input[type=file]{display:none}
 
   </div><!-- close tab-plan -->
 
-  <div id="tab-y27" class="tab-pane" style="padding:20px 0">
+  <div id="tab-y27" class="tab-pane" style="padding:16px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">EXPANSION PLAN 2027</div>
@@ -532,7 +532,7 @@ input[type=file]{display:none}
     <div style="margin-top:10px;font-size:10px;color:var(--mt)">Buses = pairs × 2 · Default go-live 15 Mar 2027 · ✕ deletes a pair</div>
   </div>
 
-<div id="tab-crm" class="tab-pane" style="padding:20px 0">
+<div id="tab-crm" class="tab-pane" style="padding:16px 20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">BUS PARTNER LEADS</div>
@@ -547,6 +547,7 @@ input[type=file]{display:none}
         <button class="fb crmv active" data-v="board" onclick="crmSetView('board')">▦ Board</button>
         <button class="fb crmv" data-v="table" onclick="crmSetView('table')">☰ Table</button>
         <button class="fb crmv" data-v="lc" onclick="crmSetView('lc')">🧭 By route</button>
+        <select class="ipt" onchange="crmSetMonth(this.value)" title="Filter by expansion month" style="width:112px;font-size:11px;padding:4px 6px"><option value="all">All months</option><option>Jan</option><option>Feb</option><option>Mar</option></select>
         <label style="font-size:10px;color:var(--mt);cursor:pointer"><input type="checkbox" onchange="crmToggleDropped(this)"> Show dropped</label>
         <button id="crm-add" onclick="crmAdd()" style="display:none;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">＋ Add lead</button>
         <button onclick="crmDl()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
@@ -1355,7 +1356,7 @@ function y27Summary(){
   var rows=Y27.filter(y27Match),cnt=function(f){return rows.filter(f).length};
   var nR=function(a){var o={};a.forEach(function(r){o[r.route]=1});return Object.keys(o).length};
   var withBP=cnt(function(r){return(r.bp||"").trim()});
-  var card=function(l,v,sub,c){return'<div class="card" style="min-width:140px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+sub+'</div></div>'};
+  var card=function(l,v,sub,c){return'<div class="card" style="min-width:150px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;white-space:nowrap;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+sub+'</div></div>'};
   sm.innerHTML=card("Routes",nR(rows),"of "+nR(Y27)+" total","var(--g)")
     +card("Bus pairs",rows.length,"of "+Y27.length+" total","var(--g)")
     +card("Buses",rows.length*2,"pairs × 2","var(--g)")
@@ -1425,7 +1426,7 @@ const CRM_COL={"Connected":"var(--bl)","Business Model Discussion":"#a371f7","Co
 const CRM_SOURCES=["Redbus","OEM Referral","BP Referral","Inbound Lead","Others"];
 const CRM_OPTYPES=["Intercity","Trucking Operators","ETS"];
 const CRM_NEWSEL=["New","Existing"];
-var CRM=[],crmMode="loading",crmView="board",crmBDM="all",crmDropped=false,crmHas27=false,crmHasNew=true,crmOpen=null;
+var CRM=[],crmMode="loading",crmView="board",crmBDM="all",crmMonth="all",crmDropped=false,crmHas27=false,crmHasNew=true,crmOpen=null;
 function crmEsc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
 function crmMsg(t,c){var e=document.getElementById("crm-note");if(e){e.textContent=t;e.style.color=c||"var(--mt)"}}
 function crmInr(n){return n==null||n===""||isNaN(+n)?"—":"₹"+Math.round(+n).toLocaleString("en-IN")}
@@ -1435,6 +1436,17 @@ function crmNum(v){if(v===""||v==null)return null;var n=parseFloat(v);return isN
 function crmNorm(s){return String(s||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[-–—\/,&]/g," ").replace(/\bto\b/g," ").replace(/\s+/g," ").trim()}
 function crmLc(s){return String(s||"").replace(/\s+/g,"").toUpperCase()}
 function crmOverdue(l){return l.next_followup&&l.stage!=="Signed"&&l.stage!=="Dropped"&&String(l.next_followup).slice(0,10)<TODAY}
+function crmLeadRows(l){
+  var lk=crmLc(l.line_code),rows=[];
+  if(lk)rows=Y27.filter(function(r){return crmLc(r.lc)===lk});
+  if(!rows.length)rows=Y27.filter(function(r){return r.crm_lead_id===l.id});
+  if(!rows.length&&(l.routes||"").trim()){var rk=crmNorm(l.routes);rows=Y27.filter(function(r){return crmNorm(r.route)===rk})}
+  return rows;
+}
+function crmMonthTxt(l,long){
+  var c={};crmLeadRows(l).forEach(function(r){var m=y27Month(r);if(m)c[m]=(c[m]||0)+1});
+  return Y27_MN.filter(function(m){return c[m]}).map(function(m){return long?m+" ×"+c[m]:m}).join(" · ");
+}
 function crmLabel(l){return(l.line_code||"").trim()||(l.routes||"").trim()}
 async function crmApi(table,method,qs,body,needRows){
   var h=Object.assign({},sbH,{"Prefer":"return=representation"});
@@ -1460,6 +1472,7 @@ function crmFiltered(){
   return CRM.filter(function(l){
     if(crmBDM!=="all"&&l.bdm!==crmBDM)return false;
     if(l.stage==="Dropped"&&!crmDropped)return false;
+    if(crmMonth!=="all"&&crmMonthTxt(l).split(" · ").indexOf(crmMonth)<0)return false;
     if(q&&[l.bp_name,l.routes,l.line_code,l.contact_name,l.remarks,l.bdm,l.aggregator_name,l.lead_source,l.operator_type].join(" ").toLowerCase().indexOf(q)<0)return false;
     return true;
   });
@@ -1469,7 +1482,7 @@ function crmCards(rows){
   var rates=act.map(crmRate).filter(function(x){return x!=null});
   var avg=rates.length?rates.reduce(function(a,b){return a+b},0)/rates.length:null;
   var od=act.filter(crmOverdue).length;
-  var card=function(l,v,s,c){return'<div class="card" style="min-width:130px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
+  var card=function(l,v,s,c){return'<div class="card" style="min-width:140px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;white-space:nowrap;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
   return card("Active leads",act.length,"before Signed","var(--bl)")
    +card("Pairs in pipeline",act.reduce(function(a,l){return a+(+l.pairs||0)},0),"active leads","var(--bl)")
    +card("Avg ₹/KM (active)",avg==null?"—":"₹"+avg.toFixed(2),rates.length+" leads with rate","var(--am)")
@@ -1495,12 +1508,12 @@ function renderCrm(){
 }
 function crmCardHtml(l){
   var od=crmOverdue(l);
-  var tags=[(l.line_code||"").trim(),l.partner_type,l.operator_type].filter(function(x){return x}).map(crmEsc).join(" · ");
+  var tags=[(l.line_code||"").trim(),l.partner_type,l.operator_type,crmMonthTxt(l)?"Exp: "+crmMonthTxt(l):""].filter(function(x){return x}).map(crmEsc).join(" · ");
   return'<div draggable="true" ondragstart="crmDrag(event,'+l.id+')" onclick="crmOpenModal('+l.id+')" style="cursor:pointer;background:var(--cd);border:1px solid var(--br);border-left:3px solid '+(CRM_COL[l.stage]||"var(--br)")+';border-radius:8px;padding:9px 11px;margin-bottom:8px">'
    +'<div style="font-weight:700;font-size:12px;color:var(--tx)">'+(crmEsc(l.bp_name)||'<span style="color:var(--mt)">(no name)</span>')+'</div>'
    +'<div style="font-size:11px;color:var(--mt);margin:2px 0 4px">'+(crmEsc(l.routes)||"— no route —")+'</div>'
    +(tags?'<div style="font-size:10px;color:var(--mt);margin-bottom:5px;font-family:\'DM Mono\',monospace">'+tags+'</div>':"")
-   +'<div style="font-size:11px;display:flex;gap:8px;flex-wrap:wrap"><span>'+crmInr(l.rt_amount)+'</span><span style="color:var(--mt)">'+(l.rt_km?Number(l.rt_km).toLocaleString("en-IN")+" km":"")+'</span><span style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'/km</span></div>'
+   +'<div style="font-size:11px;display:flex;gap:8px;flex-wrap:wrap"><span>'+crmInr(l.rt_amount)+'</span><span style="color:var(--mt)">'+(l.rt_km?Number(l.rt_km).toLocaleString("en-IN")+" km":"")+'</span>'+(crmRate(l)!=null?'<span style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'/km</span>':"")+'</div>'
    +'<div style="font-size:10px;color:var(--mt);margin-top:6px;display:flex;justify-content:space-between;gap:6px"><span>'+(l.pairs||0)+' pair'+((+l.pairs)===1?"":"s")+(l.bdm?" · "+crmEsc(l.bdm):"")+(l.fleet_size?" · fleet "+l.fleet_size:"")+'</span>'
    +(l.next_followup?'<span style="color:'+(od?"var(--rd)":"var(--mt)")+'">'+(od?"⚠ ":"")+'F/U '+crmEsc(String(l.next_followup).slice(5,10).split("-").reverse().join("/"))+'</span>':"")+'</div>'
    +(l.stage==="Signed"&&l.handoff_note?'<div style="font-size:10px;color:var(--g);margin-top:5px">✓ '+crmEsc(l.handoff_note)+'</div>':"")
@@ -1529,7 +1542,7 @@ function crmSel(l,f,opts,w,o){
 }
 function crmTableHtml(rows){
   var th='padding:9px 8px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
-  var heads=["Bus partner","New / Existing","Lead source","Operator type","Aggregator?","Aggregator name","Meta rating","Fleet size","Line code","Route","Pairs","Round trip ₹","RT km","₹/KM","Stage","BDM","Contact","Follow-up","Remarks","2027 list",""];
+  var heads=["Bus partner","New / Existing","Lead source","Operator type","Aggregator?","Aggregator name","Meta rating","Fleet size","Line code","Expansion month","Route","Pairs","Round trip ₹","RT km","₹/KM","Stage","BDM","Contact","Follow-up","Remarks","2027 list",""];
   var td=function(v,x){return'<td style="padding:5px 8px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
   var out=rows.map(function(l){
     var isNew=l.partner_type==="New",agg=l.aggregator==="Yes";
@@ -1537,7 +1550,7 @@ function crmTableHtml(rows){
      +td(crmSel(l,"lead_source",CRM_SOURCES,"115px",{dis:!isNew}))+td(crmSel(l,"operator_type",CRM_OPTYPES,"125px"))
      +td(crmSel(l,"aggregator",["Yes","No"],"68px"))+td(crmInp(l,"aggregator_name","115px",{dis:!agg,ph:agg?"Aggregator":""}))
      +td(crmInp(l,"meta_rating","56px",{t:"number",step:"0.1",max:5}))+td(crmInp(l,"fleet_size","62px",{t:"number",step:"1"}))
-     +td(crmInp(l,"line_code","88px",{list:"crm-lcs",ph:"IN0000"}),"font-family:'DM Mono',monospace")+td(crmInp(l,"routes","170px",{list:"crm-routes"}))
+     +td(crmInp(l,"line_code","88px",{list:"crm-lcs",ph:"IN0000"}),"font-family:'DM Mono',monospace")+td(crmMonthTxt(l,true)||'<span style="color:var(--mt)">—</span>',"white-space:nowrap;font-size:11px")+td(crmInp(l,"routes","170px",{list:"crm-routes"}))
      +td(crmInp(l,"pairs","52px",{t:"number",step:"1"}))+td(crmInp(l,"rt_amount","92px",{t:"number"}))+td(crmInp(l,"rt_km","72px",{t:"number"}))
      +td('<span id="crm-rate-'+l.id+'" style="color:var(--am);font-weight:600">'+crmRateTxt(l)+'</span>',"white-space:nowrap")
      +td(crmStageSel(l,"120px"))+td(crmBdmSel(l,"78px"))+td(crmInp(l,"contact_name","105px"))+td(crmInp(l,"next_followup","125px",{t:"date"}))+td(crmInp(l,"remarks","160px"))
@@ -1546,7 +1559,7 @@ function crmTableHtml(rows){
   }).join("");
   return'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table id="crm-tbl" style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
    +heads.map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'
-   +(out||'<tr><td colspan="21" style="padding:20px;text-align:center;color:var(--mt)">No leads yet — click ＋ Add lead</td></tr>')+'</tbody></table></div>';
+   +(out||'<tr><td colspan="22" style="padding:20px;text-align:center;color:var(--mt)">No leads yet — click ＋ Add lead</td></tr>')+'</tbody></table></div>';
 }
 function crmStageSel(l,w){
   return'<select class="ipt" data-id="'+l.id+'" onchange="crmMove('+l.id+',this.value,this)" style="width:'+w+';font-size:11px;box-sizing:border-box;color:'+(CRM_COL[l.stage]||"inherit")+'">'
@@ -1557,7 +1570,7 @@ function crmBdmSel(l,w){return crmSel(l,"bdm",["Aakash","Syed"],w)}
 function crmChip(l){
   var c=CRM_COL[l.stage]||"var(--mt)";
   return'<span onclick="crmOpenModal('+l.id+')" title="'+crmEsc(l.stage)+(l.pairs?" · "+l.pairs+" pair(s)":"")+'" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin:2px 5px 2px 0;padding:3px 9px;border-radius:999px;border:1px solid '+c+';font-size:11px;color:var(--tx);'+(l.stage==="Dropped"?"opacity:.55;text-decoration:line-through;":"")+'">'
-   +(crmEsc(l.bp_name)||"(no name)")+'<span style="font-size:9px;color:'+c+';text-transform:uppercase;letter-spacing:.03em">'+CRM_SHORT[l.stage]+'</span></span>';
+   +(crmEsc(l.bp_name)||"(no name)")+(crmRate(l)!=null?'<span style="font-size:11px;font-weight:700;color:var(--am)">'+crmRateTxt(l)+'/km</span>':'<span style="font-size:10px;color:var(--mt)">no rate</span>')+'<span style="font-size:9px;color:'+c+';text-transform:uppercase;letter-spacing:.03em">'+CRM_SHORT[l.stage]+'</span></span>';
 }
 function crmLcHtml(rows){
   if(!Y27.length)return'<div style="padding:20px;color:var(--mt)">The 2027 expansion list is empty — load it first on the Expansion 2027 tab.</div>';
@@ -1565,8 +1578,8 @@ function crmLcHtml(rows){
   var order=[],map={},lcRoute={};
   Y27.forEach(function(r){
     var k=crmNorm(r.route);if(!k)return;
-    if(!map[k]){map[k]={name:r.route,pairs:0,lcs:{}};order.push(k)}
-    map[k].pairs++;if(r.lc)map[k].lcs[r.lc]=1;
+    if(!map[k]){map[k]={name:r.route,pairs:0,lcs:{},months:{}};order.push(k)}
+    map[k].pairs++;var mm=y27Month(r);if(mm)map[k].months[mm]=(map[k].months[mm]||0)+1;if(r.lc)map[k].lcs[r.lc]=1;
     if(r.lc)lcRoute[crmLc(r.lc)]=k;
   });
   var linkedRt={};
@@ -1592,17 +1605,19 @@ function crmLcHtml(rows){
     var n=bpCount(ls);
     return"<tr>"+td('<strong title="Line codes: '+crmEsc(Object.keys(m.lcs).join(", "))+'">'+crmEsc(m.name)+'</strong>')
      +td(m.pairs,"text-align:center;font-weight:600")
+     +td(Y27_MN.filter(function(x){return m.months[x]}).map(function(x){return'<span style="white-space:nowrap;margin-right:10px"><span style="color:var(--g);font-weight:600">'+x+'</span> '+m.months[x]+'</span>'}).join("")||"—","font-size:11px")
      +td('<span style="font-weight:700;color:'+(n?"var(--g)":"var(--mt)")+'">'+n+'</span>',"text-align:center")
      +td(ls.length?ls.map(crmChip).join(""):'<span style="color:var(--mt);font-size:11px">No BP yet</span>')+"</tr>";
   }).join("");
   var tot='<tr style="background:rgba(255,255,255,.04);font-weight:700"><td style="padding:9px 12px;border-top:2px solid rgba(255,255,255,.15)">Total</td><td style="padding:9px 12px;text-align:center;border-top:2px solid rgba(255,255,255,.15)">'+totPairs+'</td><td style="padding:9px 12px;text-align:center;color:var(--g);border-top:2px solid rgba(255,255,255,.15)">'+mapped+'</td><td style="border-top:2px solid rgba(255,255,255,.15)"></td></tr>';
-  var un=unmapped.length?'<tr><td colspan="4" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 route ('+unmapped.length+')</td></tr>'
-    +'<tr><td colspan="4" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+'<span style="font-size:10px;color:var(--mt);margin-right:8px">'+crmEsc(crmLabel(l)||"no route / line code")+'</span>'}).join("")+'</td></tr>':"";
+  var un=unmapped.length?'<tr><td colspan="5" style="padding:10px 12px;border-top:2px solid rgba(255,255,255,.12);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am)">Leads not mapped to a 2027 route ('+unmapped.length+')</td></tr>'
+    +'<tr><td colspan="5" style="padding:4px 12px 12px">'+unmapped.map(function(l){return crmChip(l)+'<span style="font-size:10px;color:var(--mt);margin-right:8px">'+crmEsc(crmLabel(l)||"no route / line code")+'</span>'}).join("")+'</td></tr>':"";
   return'<div style="font-size:11px;color:var(--mt);margin-bottom:10px">'+order.length+' routes planned in 2027 · '+totPairs+' pairs · <strong style="color:var(--g)">'+withBP+'</strong> routes with at least one BP · <strong style="color:var(--am)">'+(order.length-withBP)+'</strong> with none</div>'
    +'<div style="font-size:10px;color:var(--mt);margin-bottom:8px">'+legend+'· click a name to open the lead</div>'
    +'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
-   +["Route","Pairs planned","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+tot+un+'</tbody></table></div>';
+   +["Route","Pairs planned","Expansion months (pairs)","BPs","Bus partners"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+body+tot+un+'</tbody></table></div>';
 }
+function crmSetMonth(v){crmMonth=v;renderCrm()}
 function crmSetView(v){crmView=v;renderCrm()}
 function crmSetBDM(b,btn){crmBDM=b;document.querySelectorAll(".crmb").forEach(function(x){x.classList.remove("active")});btn.classList.add("active");renderCrm()}
 function crmToggleDropped(el){crmDropped=el.checked;renderCrm()}
@@ -1732,6 +1747,7 @@ async function crmOpenModal(id){
    +f("Working with an aggregator?",crmSel(l,"aggregator",["Yes","No"],W,{fs:fs}))+f("Aggregator name"+(agg?"":" (if yes)"),crmInp(l,"aggregator_name",W,{dis:!agg,fs:fs,ph:agg?"e.g. Redbus":""}))
    +f("Meta rating (0–5)",crmInp(l,"meta_rating",W,{t:"number",step:"0.1",max:5,fs:fs,ph:"e.g. 4.2"}))+f("Fleet size",crmInp(l,"fleet_size",W,{t:"number",step:"1",fs:fs}))
    +f("Line code (maps to the 2027 list)",crmInp(l,"line_code",W,{list:"crm-lcs",ph:"e.g. IN0421E",fs:fs}))+f("Route (filled from line code)",crmInp(l,"routes",W,{list:"crm-routes",ph:"e.g. Delhi to Lucknow",fs:fs}))
+   +f("Expansion month (from 2027 list)",'<div style="font-size:13px;font-weight:600;padding:3px 0;color:var(--tx)">'+(crmMonthTxt(l,true)||"—")+'</div>')+f("Pairs planned on this line code",'<div style="font-size:13px;font-weight:600;padding:3px 0;color:var(--tx)">'+(crmLeadRows(l).length||"—")+'</div>')
    +f("Round trip amount (₹)",crmInp(l,"rt_amount",W,{t:"number",fs:fs}))+f("Round trip KM",crmInp(l,"rt_km",W,{t:"number",fs:fs}))
    +f("₹ / KM (auto)",'<div id="crm-m-rate" style="font-size:16px;font-weight:700;color:var(--am);padding:3px 0">'+crmRateTxt(l)+'</div>')+f("No. of pairs",crmInp(l,"pairs",W,{t:"number",step:"1",fs:fs}))
    +f("Stage",crmStageSel(l,"100%"))+f("BDM owner",crmBdmSel(l,"100%"))
@@ -1756,8 +1772,8 @@ async function crmCloseModal(skip){
   renderCrm();
 }
 function crmDl(){
-  var hdr=["Bus partner","New / Existing","Lead source","Operator type","Working with aggregator","Aggregator name","Meta rating","Fleet size","Line code","Route","Pairs","Round trip amount","Round trip KM","Rs per KM","Stage","BDM","Contact","Next follow-up","Remarks","2027 list","Signed on"];
-  var rows=[hdr].concat(crmFiltered().map(function(l){var r=crmRate(l);return[l.bp_name,l.partner_type,l.lead_source,l.operator_type,l.aggregator,l.aggregator_name,l.meta_rating,l.fleet_size,l.line_code,l.routes,l.pairs,l.rt_amount,l.rt_km,r==null?"":Math.round(r*100)/100,l.stage,l.bdm,l.contact_name,l.next_followup,l.remarks,l.handoff_note,l.signed_at?String(l.signed_at).slice(0,10):""].map(function(v){return v==null?"":v})}));
+  var hdr=["Bus partner","New / Existing","Lead source","Operator type","Working with aggregator","Aggregator name","Meta rating","Fleet size","Line code","Expansion month","Route","Pairs","Round trip amount","Round trip KM","Rs per KM","Stage","BDM","Contact","Next follow-up","Remarks","2027 list","Signed on"];
+  var rows=[hdr].concat(crmFiltered().map(function(l){var r=crmRate(l);return[l.bp_name,l.partner_type,l.lead_source,l.operator_type,l.aggregator,l.aggregator_name,l.meta_rating,l.fleet_size,l.line_code,crmMonthTxt(l,true),l.routes,l.pairs,l.rt_amount,l.rt_km,r==null?"":Math.round(r*100)/100,l.stage,l.bdm,l.contact_name,l.next_followup,l.remarks,l.handoff_note,l.signed_at?String(l.signed_at).slice(0,10):""].map(function(v){return v==null?"":v})}));
   var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=hdr.map(function(h){return{wch:Math.max(12,h.length+2)}});
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Leads");XLSX.writeFile(wb,"Flix_India_Leads_CRM.xlsx");
 }
