@@ -2153,7 +2153,7 @@ function ldCoverage(){
   ldActiveLeads().forEach(function(l){var k=crmLc(l.line_code);if(k)lc[k]=(lc[k]||0)+1;else if((l.routes||"").trim()){var r=crmNorm(l.routes);rt[r]=(rt[r]||0)+1}});
   return function(r){return(lc[crmLc(r.lc)]||0)>0||(rt[crmNorm(r.route)]||0)>0};
 }
-function ldCompute(){
+function ldCompute(fm){
   var covered=ldCoverage(),out={months:[],routes:{},tot:{pairs:0,closed:0,covered:0}};
   Object.keys(CLOSE_TARGET).forEach(function(mn){
     var rows=Y27.filter(function(r){return y27Month(r)===mn}),closed=rows.filter(function(r){return(r.bp||"").trim()}),open=rows.filter(function(r){return!(r.bp||"").trim()});
@@ -2165,6 +2165,7 @@ function ldCompute(){
   });
   Y27.forEach(function(r){
     var mn=y27Month(r);if(!CLOSE_TARGET[mn])return;
+    if(fm&&fm!=="all"&&mn!==fm)return;   // month filter: only pairs going live that month
     var k=crmNorm(r.route);if(!k)return;
     var o=out.routes[k]=out.routes[k]||{name:r.route,pairs:0,closed:0,covered:0,months:{},tg:"",bps:{}};
     o.pairs++;if((r.bp||"").trim()){o.closed++;o.bps[r.bp.trim()]=1}else if(covered(r))o.covered++;
@@ -2181,7 +2182,7 @@ function ldSetMonth(m,btn){ldMonth=m;document.querySelectorAll(".ldm").forEach(f
 function renderLead(){
   var el=document.getElementById("lead-body");if(!el)return;
   if(!Y27.length){el.innerHTML='<div style="padding:20px;color:var(--mt)">Waiting for the 2027 expansion list…</div>';return}
-  var D=ldCompute(),act=ldActiveLeads(),T=D.tot;
+  var D=ldCompute(ldMonth),act=ldActiveLeads(),T=D.tot;
   var card=function(l,v,s,c){return'<div class="card" style="min-width:150px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;white-space:nowrap;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
   var norBp=crmBpNoRoute(CRM).length,openPairs=T.pairs-T.closed,covPct=openPairs?Math.round(T.covered/openPairs*100):100;
   var next=D.months.filter(function(m){return m.open>0}).sort(function(a,b){return a.target<b.target?-1:1})[0];
@@ -2206,7 +2207,7 @@ function renderLead(){
      +'<div>Pace needed<br><strong style="color:var(--tx);font-size:13px">'+(m.open&&m.days>0?m.pace.toFixed(1)+" pairs/week":m.open?"—":"done")+'</strong></div></div></div>';
   }).join("")+'</div>';
   // route-wise
-  var routes=Object.keys(D.routes).map(function(k){return D.routes[k]}).filter(function(o){return ldMonth==="all"||o.months[ldMonth]});
+  var routes=Object.keys(D.routes).map(function(k){return D.routes[k]});
   routes.sort(function(a,b){var ta=a.tg||"9999",tb=b.tg||"9999";return ta<tb?-1:ta>tb?1:(b.pairs-b.closed)-(a.pairs-a.closed)});
   var th='padding:9px 10px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
   var td=function(v,x){return'<td style="padding:7px 10px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
@@ -2220,10 +2221,12 @@ function renderLead(){
      +td(open?(o.covered>=open?'<span style="color:var(--g);font-size:11px">covered</span>':'<span style="color:'+(o.covered?"var(--am)":"var(--rd)")+';font-size:11px">'+(o.covered?o.covered+" of "+open+" covered":"no active lead")+'</span>'):"—")
      +td(Object.keys(o.bps).map(function(b){return crmEsc(b)}).join(", ")||'<span style="color:var(--mt)">—</span>',"font-size:11px")+"</tr>";
   }).join("");
-  var rtab='<div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;flex-wrap:wrap;gap:8px"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt)">Route-wise: buses closed vs target</div>'
-   +'<div class="noprint" style="display:flex;gap:6px">'+["all","Jan","Feb","Mar"].map(function(m){return'<button class="fb ldm'+(ldMonth===m?" active":"")+'" onclick="ldSetMonth(\''+m+'\',this)">'+(m==="all"?"All months":m)+'</button>'}).join("")+'</div></div>'
+  var fp=routes.reduce(function(a,o){return a+o.pairs},0),fc=routes.reduce(function(a,o){return a+o.closed},0),fm=ldMonth==="all"?null:D.months.filter(function(x){return x.mn===ldMonth})[0];
+  var fsum=fm?'<div style="font-size:12px;margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--gd);color:var(--tx)"><strong style="color:var(--g)">'+ldMonth+' 2027 go-live</strong> · '+routes.length+' routes · <strong>'+fp+' pairs ('+fp*2+' buses)</strong> to be signed by <strong>'+crmFmtD(fm.target)+'</strong> ('+(fm.days<0?Math.abs(fm.days)+" days overdue":fm.days+" days left")+') · closed so far: <strong style="color:var(--g)">'+fc*2+' buses</strong> · still to add: <strong style="color:var(--am)">'+(fp-fc)*2+' buses</strong></div>':"";
+  var rtab='<div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 8px;flex-wrap:wrap;gap:8px"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt)">Route-wise: buses closed vs target'+(fm?" — "+ldMonth+" go-live only":"")+'</div>'
+   +'<div class="noprint" style="display:flex;gap:6px">'+["all","Jan","Feb","Mar"].map(function(m){return'<button class="fb ldm'+(ldMonth===m?" active":"")+'" onclick="ldSetMonth(\''+m+'\',this)">'+(m==="all"?"All months":m)+'</button>'}).join("")+'</div></div>'+fsum
    +'<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br);margin-bottom:22px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
-   +["Route","Go-live months (pairs)","Target buses","Closed buses","Closed vs target","Next sign-by","Pipeline cover","Partners signed"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+(rview||'<tr><td colspan="8" style="padding:18px;color:var(--mt);text-align:center">No routes</td></tr>')+'</tbody></table></div>';
+   +["Route",ldMonth==="all"?"Go-live months (pairs)":"Pairs to add ("+ldMonth+")","Target buses","Closed buses","Closed vs target",ldMonth==="all"?"Next sign-by":"Sign-by ("+ldMonth+")","Pipeline cover","Partners signed"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'+(rview||'<tr><td colspan="8" style="padding:18px;color:var(--mt);text-align:center">No routes</td></tr>')+'</tbody></table></div>';
   // funnel
   var maxL=Math.max.apply(null,CRM_STAGES.map(function(s){return CRM.filter(function(l){return l.stage===s}).length}).concat([1]));
   var funnel='<div class="card" style="flex:1;min-width:300px"><div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt);margin-bottom:12px">Lead funnel</div>'+CRM_STAGES.map(function(s){
@@ -2269,7 +2272,7 @@ function renderLead(){
 function ldLive(){var t=document.getElementById("tab-lead");if(t&&t.classList.contains("active"))renderLead()}
 function ldPrint(){renderLead();window.print()}
 function ldDl(){
-  var D=ldCompute();
+  var D=ldCompute(ldMonth);
   var m=[["Go-live month","Sign-by date","Days left","Pairs","Pairs closed","Pairs open","Buses target","Buses closed","Closed %","Open pairs with active lead","Status"]].concat(D.months.map(function(x){return[x.mn,x.target,x.days,x.pairs,x.closed,x.open,x.pairs*2,x.closed*2,x.pct,x.covered,x.status]}));
   var r=[["Route","Go-live months","Target buses","Closed buses","Closed %","Next sign-by","Open pairs with active lead","Partners signed"]].concat(Object.keys(D.routes).map(function(k){var o=D.routes[k];return[o.name,Y27_MN.filter(function(x){return o.months[x]}).map(function(x){return x+" "+o.months[x]}).join(", "),o.pairs*2,o.closed*2,o.pairs?Math.round(o.closed/o.pairs*100):0,o.tg||"done",o.covered,Object.keys(o.bps).join(", ")]}));
   var wb=XLSX.utils.book_new();[["Month targets",m],["Routes",r]].forEach(function(s){var ws=XLSX.utils.aoa_to_sheet(s[1]);ws["!cols"]=s[1][0].map(function(h){return{wch:Math.max(14,String(h).length+2)}});XLSX.utils.book_append_sheet(wb,ws,s[0])});
