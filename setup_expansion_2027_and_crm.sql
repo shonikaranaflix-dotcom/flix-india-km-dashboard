@@ -88,3 +88,34 @@ begin
     execute format('grant select, insert, update, delete on public.%I to anon', t);
   end loop;
 end $$;
+
+-- ============ 4. REPURPOSING (sub-tab inside Leads CRM) ============
+create table if not exists public.crm_repurposing (
+  id               bigint generated always as identity primary key,
+  line_code        text not null default '',
+  route            text not null default '',
+  current_bp       text not null default '',
+  pairs            integer not null default 1 check (pairs >= 0),
+  replacement_type text not null default ''
+                   check (replacement_type in ('','Same BP – new buses','New BP')),
+  replacement_bp   text not null default '',
+  planned_date     text not null default '',
+  status           text not null default 'Planned'
+                   check (status in ('','Planned','In progress','Done','On hold')),
+  bdm              text not null default '',
+  reason           text not null default '',
+  remarks          text not null default '',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  updated_by       text
+);
+alter table public.crm_repurposing enable row level security;
+drop policy if exists "crm_repurposing anon read"   on public.crm_repurposing;
+drop policy if exists "crm_repurposing anon insert" on public.crm_repurposing;
+drop policy if exists "crm_repurposing anon update" on public.crm_repurposing;
+drop policy if exists "crm_repurposing anon delete" on public.crm_repurposing;
+create policy "crm_repurposing anon read"   on public.crm_repurposing for select to anon using (true);
+create policy "crm_repurposing anon insert" on public.crm_repurposing for insert to anon with check (true);
+create policy "crm_repurposing anon update" on public.crm_repurposing for update to anon using (true) with check (true);
+create policy "crm_repurposing anon delete" on public.crm_repurposing for delete to anon using (true);
+grant select, insert, update, delete on public.crm_repurposing to anon;

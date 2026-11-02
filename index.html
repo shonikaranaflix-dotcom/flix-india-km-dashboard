@@ -533,6 +533,12 @@ input[type=file]{display:none}
   </div>
 
 <div id="tab-crm" class="tab-pane" style="padding:16px 20px">
+    <datalist id="crm-routes"></datalist><datalist id="crm-lcs"></datalist><datalist id="crm-bps"></datalist>
+    <div id="crm-subnav" style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--br);padding-bottom:12px">
+      <button class="fb crms active" data-s="leads" onclick="crmSetSub('leads')" style="font-size:12px;padding:6px 16px">🤝 Leads</button>
+      <button class="fb crms" data-s="rep" onclick="crmSetSub('rep')" style="font-size:12px;padding:6px 16px">♻ Repurposing</button>
+    </div>
+    <div id="crm-leads-wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">BUS PARTNER LEADS</div>
@@ -556,9 +562,35 @@ input[type=file]{display:none}
     <div id="crm-banner"></div>
     <div id="crm-cards" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap"></div>
     <div id="crm-body"></div>
-    <datalist id="crm-routes"></datalist><datalist id="crm-lcs"></datalist><datalist id="crm-bps"></datalist>
     <div id="crm-modal" onclick="if(event.target===this)crmCloseModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center"></div>
     <div style="margin-top:12px;font-size:10px;color:var(--mt)">₹/KM = round trip amount ÷ round trip KM · Stages: Connected → Business Model Discussion → Commercial Negotiation → Ops Due Diligence → Signed</div>
+    </div>
+    <div id="crm-rep-wrap" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--mt);text-transform:uppercase;margin-bottom:4px">BUS REPLACEMENT</div>
+          <div style="font-size:18px;font-weight:700;color:var(--tx)">Repurposing</div>
+          <div id="rep-note" style="font-size:10px;color:var(--mt);margin-top:3px">Buses to be replaced with new buses from the same BP, or by a new BP. Add lines manually — changes save automatically. Not part of any KM or bus numbers.</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="rep-q" class="ipt" placeholder="Search line, route, BP…" oninput="renderRep()" style="width:190px;font-family:'DM Sans',sans-serif;padding:5px 9px">
+          <button class="fb reps active" onclick="repSetStatus('all',this)">All</button>
+          <button class="fb reps" onclick="repSetStatus('Planned',this)">Planned</button>
+          <button class="fb reps" onclick="repSetStatus('In progress',this)">In progress</button>
+          <button class="fb reps" onclick="repSetStatus('Done',this)">Done</button>
+          <button class="fb reps" onclick="repSetStatus('On hold',this)">On hold</button>
+          <button class="fb repb active" onclick="repSetBDM('all',this)">All BDMs</button>
+          <button class="fb repb" onclick="repSetBDM('Aakash',this)">Aakash</button>
+          <button class="fb repb" onclick="repSetBDM('Syed',this)">Syed</button>
+          <button id="rep-add" onclick="repAdd()" style="display:none;font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--g);background:var(--gd);color:var(--g);cursor:pointer">＋ Add line</button>
+          <button onclick="repDl()" style="font-size:10px;padding:4px 10px;border-radius:5px;border:1px solid var(--br);background:rgba(255,255,255,.05);color:var(--mt);cursor:pointer">⬇ Download</button>
+        </div>
+      </div>
+      <div id="rep-banner"></div>
+      <div id="rep-cards" style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap"></div>
+      <div id="rep-body"></div>
+      <div style="margin-top:12px;font-size:10px;color:var(--mt)">Buses = pairs × 2 · "Same BP" lines keep the current partner; for "New BP" enter the replacement partner · Line code fills the route from the 2027 list when the route is empty</div>
+    </div>
   </div>
 
 <div class="fn">Flix India Business Team · KM Dashboard 2026 · Internal Use Only</div>
@@ -1262,7 +1294,7 @@ function switchTab(id,btn){
   document.getElementById("tab-"+id).classList.add("active");btn.classList.add("active");
   if(id==='plan')bPlan();
   if(id==='y27')render27();
-  if(id==='crm')renderCrm();
+  if(id==='crm'){if(crmSub==='rep')renderRep();else renderCrm()}
 }
 function recalc(){renderAll()}
 
@@ -1791,6 +1823,117 @@ function crmRoutesList(){
 }
 
 
+// ── Repurposing (sub-tab inside Leads CRM) — Supabase table crm_repurposing ─────
+// Buses to be replaced with new buses from the same BP, or by a new BP. Standalone list: no effect on any KM / bus numbers.
+var REP=[],repMode="loading",repStatus="all",repBDM="all",crmSub="leads";
+const REP_TYPES=["Same BP – new buses","New BP"];
+const REP_STATUS=["Planned","In progress","Done","On hold"];
+const REP_COL={"Planned":"var(--bl)","In progress":"var(--am)","Done":"var(--g)","On hold":"var(--mt)"};
+function repMsg(t,c){var e=document.getElementById("rep-note");if(e){e.textContent=t;e.style.color=c||"var(--mt)"}}
+async function loadRep(){
+  try{
+    var r=await fetch(SB_URL+"/rest/v1/crm_repurposing?select=*&order=id",{headers:sbH});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    var d=await r.json();if(!Array.isArray(d))throw new Error("bad");
+    REP=d;repMode="db";
+  }catch(e){REP=[];repMode="missing"}
+  renderRep();
+}
+function crmSetSub(s){
+  crmSub=s;
+  document.querySelectorAll(".crms").forEach(function(b){b.classList.toggle("active",b.dataset.s===s)});
+  var a=document.getElementById("crm-leads-wrap"),b=document.getElementById("crm-rep-wrap");
+  if(a)a.style.display=s==="leads"?"":"none";if(b)b.style.display=s==="rep"?"":"none";
+  if(s==="rep")renderRep();else renderCrm();
+}
+function repSetStatus(v,btn){repStatus=v;document.querySelectorAll(".reps").forEach(function(x){x.classList.toggle("active",x===btn)});renderRep()}
+function repSetBDM(v,btn){repBDM=v;document.querySelectorAll(".repb").forEach(function(x){x.classList.toggle("active",x===btn)});renderRep()}
+function repFiltered(){
+  var q=((document.getElementById("rep-q")||{}).value||"").trim().toLowerCase();
+  return REP.filter(function(r){
+    if(repStatus!=="all"&&r.status!==repStatus)return false;
+    if(repBDM!=="all"&&r.bdm!==repBDM)return false;
+    if(q&&[r.line_code,r.route,r.current_bp,r.replacement_bp,r.reason,r.remarks,r.bdm].join(" ").toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+}
+function repCards(rows){
+  var n=function(f){return rows.filter(f).length},pairs=rows.reduce(function(a,r){return a+(+r.pairs||0)},0);
+  var card=function(l,v,s,c){return'<div class="card" style="min-width:140px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;white-space:nowrap;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
+  return card("Lines",rows.length,"to be repurposed","var(--g)")
+   +card("Pairs / Buses",pairs+" / "+pairs*2,"buses = pairs × 2","var(--g)")
+   +card("Same BP",n(function(r){return r.replacement_type===REP_TYPES[0]}),"new buses, same partner","var(--bl)")
+   +card("New BP",n(function(r){return r.replacement_type===REP_TYPES[1]}),"replaced by a new partner","var(--am)")
+   +card("In progress",n(function(r){return r.status==="In progress"}),"lines","var(--am)")
+   +card("Done",n(function(r){return r.status==="Done"}),"of "+rows.length+" lines","var(--g)");
+}
+function renderRep(){
+  var bn=document.getElementById("rep-banner"),body=document.getElementById("rep-body"),cs=document.getElementById("rep-cards");
+  if(!body)return;
+  var add=document.getElementById("rep-add");if(add)add.style.display=repMode==="db"?"":"none";
+  if(repMode==="missing"){
+    bn.innerHTML='<div style="padding:10px 14px;border-radius:8px;background:var(--amd);color:var(--am);font-size:11px;margin-bottom:14px">⚠ Repurposing is not set up yet — its Supabase table does not exist. Run the updated <code>setup_expansion_2027_and_crm.sql</code> once in the Supabase SQL editor (safe to re-run), then reload.</div>';
+    cs.innerHTML="";body.innerHTML="";return;
+  }
+  bn.innerHTML="";crmRoutesList();
+  var rows=repFiltered();
+  cs.innerHTML=repCards(rows);
+  var inp=function(r,f,w,o){o=o||{};return'<input class="ipt" '+(o.t?'type="'+o.t+'" ':"")+(o.t==="number"?'min="0" step="1" ':"")+'value="'+crmEsc(r[f])+'" data-id="'+r.id+'" data-f="'+f+'" onchange="repUpd(this)"'+(o.list?' list="'+o.list+'"':"")+(o.ph?' placeholder="'+o.ph+'"':"")+(o.dis?" disabled":"")+' style="width:'+w+';box-sizing:border-box;font-family:\'DM Sans\',sans-serif;font-size:11px'+(o.t==="number"?";text-align:right":"")+(o.dis?";opacity:.4":"")+'">'};
+  var sel=function(r,f,opts,w,col){var cur=r[f]||"",l=opts.slice();if(cur&&l.indexOf(cur)<0)l.push(cur);return'<select class="ipt" data-id="'+r.id+'" data-f="'+f+'" onchange="repUpd(this)" style="width:'+w+';box-sizing:border-box;font-size:11px'+(col&&REP_COL[cur]?";color:"+REP_COL[cur]:"")+'"><option value=""></option>'+l.map(function(x){return'<option'+(x===cur?" selected":"")+'>'+crmEsc(x)+'</option>'}).join("")+'</select>'};
+  var th='padding:9px 8px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
+  var td=function(v,x){return'<td style="padding:5px 8px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
+  var heads=["Line code","Route","Current BP","Pairs","Buses","Replacement","Replacement BP","Planned date","Status","BDM","Reason","Remarks",""];
+  var out=rows.map(function(r){
+    var isNew=r.replacement_type===REP_TYPES[1],same=r.replacement_type===REP_TYPES[0];
+    return"<tr>"+td(inp(r,"line_code","88px",{list:"crm-lcs",ph:"IN0000"}),"font-family:'DM Mono',monospace")+td(inp(r,"route","170px",{list:"crm-routes"}))
+     +td(inp(r,"current_bp","140px",{list:"crm-bps",ph:"Current partner"}))+td(inp(r,"pairs","52px",{t:"number"}))
+     +td('<strong>'+((+r.pairs||0)*2)+'</strong>',"text-align:center")
+     +td(sel(r,"replacement_type",REP_TYPES,"170px"))
+     +td(same?'<span style="font-size:11px;color:var(--mt)">'+(crmEsc(r.current_bp)||"same BP")+' <em>(same)</em></span>':inp(r,"replacement_bp","140px",{dis:!isNew,ph:isNew?"New partner":""}))
+     +td(inp(r,"planned_date","125px",{t:"date"}))+td(sel(r,"status",REP_STATUS,"118px",true))+td(sel(r,"bdm",["Aakash","Syed"],"78px"))
+     +td(inp(r,"reason","160px"))+td(inp(r,"remarks","160px"))
+     +td('<button onclick="repDel('+r.id+')" title="Delete line" style="background:none;border:none;color:var(--rd);cursor:pointer">✕</button>')+"</tr>";
+  }).join("");
+  body.innerHTML='<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br)"><table id="rep-tbl" style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
+   +heads.map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'
+   +(out||'<tr><td colspan="13" style="padding:22px;text-align:center;color:var(--mt)">No lines yet — click ＋ Add line to add the first repurposing line.</td></tr>')+'</tbody></table></div>';
+}
+async function repUpd(el){
+  var id=+el.dataset.id,f=el.dataset.f,r=REP.find(function(x){return x.id===id});if(!r||repMode!=="db")return;
+  var old=r[f],v=el.value,body={updated_at:new Date().toISOString()};
+  if(f==="pairs")v=Math.max(0,parseInt(v,10)||0);
+  if(f==="line_code"){v=crmLc(v);var y=v?Y27.find(function(x){return crmLc(x.lc)===v}):null;if(y&&!(r.route||"").trim())body.route=y.route}
+  if(f==="replacement_type"&&v!==REP_TYPES[1])body.replacement_bp="";
+  body[f]=v;
+  repMsg("saving…","var(--am)");
+  try{
+    var j=await crmApi("crm_repurposing","PATCH","?id=eq."+id,body,true);
+    Object.assign(r,j[0]);repMsg("✓ Saved — visible to everyone.","var(--g)");
+    if(f==="replacement_type"||f==="pairs"||f==="current_bp"||f==="status"||(f==="line_code"&&body.route))renderRep();
+    else document.getElementById("rep-cards").innerHTML=repCards(repFiltered());
+  }catch(e){el.value=old==null?"":old;repMsg("✗ Not saved: "+e.message,"var(--rd)")}
+}
+async function repAdd(){
+  if(repMode!=="db")return;
+  try{
+    var j=await crmApi("crm_repurposing","POST","",{pairs:1,status:"Planned",bdm:repBDM!=="all"?repBDM:""},true);
+    REP.push(j[0]);renderRep();repMsg("✓ Line added at the bottom — fill in the details.","var(--g)");
+    var t=document.querySelector("#rep-tbl tbody tr:last-child input");if(t){t.scrollIntoView({block:"center"});t.focus()}
+  }catch(e){repMsg("✗ Could not add: "+e.message,"var(--rd)")}
+}
+async function repDel(id){
+  if(!confirm("Delete this repurposing line? This cannot be undone."))return;
+  try{await crmApi("crm_repurposing","DELETE","?id=eq."+id,null,true);REP=REP.filter(function(x){return x.id!==id});renderRep();repMsg("✓ Deleted.","var(--g)")}
+  catch(e){repMsg("✗ Could not delete: "+e.message,"var(--rd)")}
+}
+function repDl(){
+  var hdr=["Line code","Route","Current BP","Pairs","Buses","Replacement","Replacement BP","Planned date","Status","BDM","Reason","Remarks"];
+  var rows=[hdr].concat(repFiltered().map(function(r){return[r.line_code,r.route,r.current_bp,r.pairs,(+r.pairs||0)*2,r.replacement_type,r.replacement_type===REP_TYPES[0]?r.current_bp:r.replacement_bp,r.planned_date,r.status,r.bdm,r.reason,r.remarks].map(function(v){return v==null?"":v})}));
+  var ws=XLSX.utils.aoa_to_sheet(rows);ws["!cols"]=hdr.map(function(h){return{wch:Math.max(12,h.length+2)}});
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Repurposing");XLSX.writeFile(wb,"Flix_India_Repurposing.xlsx");
+}
+
+
 // ── Master render ─────────────────────────────────────────────────────────────
 
 // ── Weekly go-live tracker ────────────────────────────────────────────────────
@@ -1907,6 +2050,7 @@ function renderAll(){
 renderAll();
 load27();
 loadCrm();
+loadRep();
 
 // Track whether user has made any edits this session
 var _userEdited=false;
