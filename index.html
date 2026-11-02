@@ -1682,7 +1682,65 @@ function crmRouteChip(l){
    +(crmRate(l)!=null?'<span style="font-size:11px;font-weight:700;color:var(--am)">'+crmRateTxt(l)+'/km</span>':"")
    +'<span style="font-size:9px;color:'+c+';text-transform:uppercase;letter-spacing:.03em">'+CRM_SHORT[l.stage]+'</span></span>';
 }
+// ── By BP: partner cards bucketed by furthest stage (default) or an A–Z table ───────────────
+var crmBpMode="stage",crmBpCollapsed={};
+function crmBpSetMode(m){crmBpMode=m;renderCrm()}
+function crmBpToggle(k){crmBpCollapsed[k]=!crmBpCollapsed[k];renderCrm()}
+function crmBpJump(k){if(crmBpCollapsed[k]){crmBpCollapsed[k]=false;renderCrm()}var e=document.getElementById("bp-sec-"+k.replace(/\W/g,""));if(e)e.scrollIntoView({behavior:"smooth",block:"start"})}
+function crmBpFurthest(x){
+  var act=x.leads.filter(function(l){return l.stage!=="Dropped"});
+  if(!act.length)return"Dropped";
+  return act.reduce(function(a,l){return CRM_STAGES.indexOf(l.stage)>CRM_STAGES.indexOf(a)?l.stage:a},act[0].stage);
+}
+function crmBpCard(x,col){
+  var l0=x.leads[0],act=x.leads.filter(function(l){return l.stage!=="Dropped"}),pairs=act.reduce(function(a,l){return a+(+l.pairs||0)},0);
+  var tag=function(t,c){return t?'<span style="font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid var(--br2);color:'+(c||"var(--mt)")+';white-space:nowrap">'+crmEsc(t)+'</span>':""};
+  var tags=tag(l0.partner_type)+tag(l0.operator_type)+(l0.fleet_size?tag("Fleet "+l0.fleet_size):"")+(l0.meta_rating!=null?tag("★ "+l0.meta_rating,"var(--am)"):"")+(l0.aggregator==="Yes"?tag("via "+(l0.aggregator_name||"aggregator")):"");
+  var lines=x.leads.map(function(l){
+    var c=CRM_COL[l.stage]||"var(--mt)",lab=(l.routes||"").trim(),lc=(l.line_code||"").trim(),rt=crmRate(l),late=crmPastTarget(l),sb=crmTarget(l);
+    return'<div onclick="crmOpenModal('+l.id+')" title="Open lead" style="cursor:pointer;display:grid;grid-template-columns:10px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid rgba(255,255,255,.07)'+(l.stage==="Dropped"?";opacity:.5":"")+'">'
+     +'<span style="width:8px;height:8px;border-radius:50%;background:'+c+'"></span>'
+     +'<div style="min-width:0"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(lab?crmEsc(lab):'<span style="color:var(--rd)">No route yet</span>')+(lc?' <span style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--mt);font-weight:400">'+crmEsc(lc)+'</span>':"")+'</div>'
+     +'<div style="font-size:10px;color:var(--mt)"><span style="color:'+c+'">'+CRM_SHORT[l.stage]+'</span>'+(sb&&l.stage!=="Signed"&&l.stage!=="Dropped"?' · sign-by <span style="color:'+(late?"var(--rd)":"inherit")+'">'+crmFmtD(sb)+(late?" (late)":"")+'</span>':"")+'</div></div>'
+     +'<div style="text-align:right;font-size:11px;white-space:nowrap"><div>'+(+l.pairs||0)+' pair'+((+l.pairs)===1?"":"s")+'</div>'+(rt!=null?'<div style="color:var(--am);font-weight:700">₹'+rt.toFixed(1)+'/km</div>':'<div style="color:var(--mt);font-size:10px">no rate</div>')+'</div></div>';
+  }).join("");
+  var nrt=x.mapped.filter(function(l){return l.stage!=="Dropped"}).length;
+  return'<div style="background:var(--cd);border:1px solid var(--br);border-top:3px solid '+col+';border-radius:10px;padding:11px 13px">'
+   +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div onclick="crmOpenModal('+l0.id+')" style="cursor:pointer;font-size:14px;font-weight:700;line-height:1.25">'+crmEsc(x.name)+'</div>'+(l0.bdm?'<span style="font-size:10px;color:var(--bl);white-space:nowrap">'+crmEsc(l0.bdm)+'</span>':"")+'</div>'
+   +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 8px">'+tags+'</div>'+lines
+   +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12)"><span style="font-size:11px;color:var(--mt)"><strong style="color:var(--tx)">'+nrt+'</strong> route'+(nrt===1?"":"s")+' · <strong style="color:var(--tx)">'+pairs+'</strong> pair'+(pairs===1?"":"s")+'</span>'
+   +'<button onclick="crmAddRouteFor('+l0.id+')" style="font-size:10px;padding:2px 9px;border-radius:5px;border:1px solid var(--g);background:transparent;color:var(--g);cursor:pointer">＋ route</button></div></div>';
+}
+function crmBpStageHtml(rows){
+  var groups=crmBpGroups(rows);
+  if(!groups.length)return'<div style="padding:20px;color:var(--mt)">No partners match these filters.</div>';
+  var order=["__nor"].concat(CRM_STAGES).concat(crmDropped?["Dropped"]:[]),b={};order.forEach(function(k){b[k]=[]});
+  groups.forEach(function(x){
+    var f=crmBpFurthest(x),k=(x.noRoute&&f!=="Dropped")?"__nor":f;
+    if(b[k])b[k].push(x);
+  });
+  order.forEach(function(k){b[k].sort(function(p,q){return p.name.toLowerCase().localeCompare(q.name.toLowerCase())})});
+  var meta=function(k){return k==="__nor"?{t:"No route yet — needs a line code",c:"var(--rd)",i:"⚠ "}:{t:k,c:CRM_COL[k],i:""}};
+  var pairsOf=function(a){return a.reduce(function(s,x){return s+x.leads.filter(function(l){return l.stage!=="Dropped"}).reduce(function(t,l){return t+(+l.pairs||0)},0)},0)};
+  var jump='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">'+order.map(function(k){var m=meta(k);return'<button onclick="crmBpJump(\''+k+'\')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 11px;border-radius:999px;border:1px solid '+(b[k].length?m.c:"var(--br)")+';background:transparent;color:'+(b[k].length?"var(--tx)":"var(--mt)")+'"><span style="width:7px;height:7px;border-radius:50%;background:'+m.c+'"></span>'+(k==="__nor"?"No route":CRM_SHORT[k])+' <strong>'+b[k].length+'</strong></button>'}).join("")+'</div>';
+  var secs=order.map(function(k){
+    var m=meta(k),n=b[k].length,coll=!!crmBpCollapsed[k];
+    if(!n&&k!=="__nor")return"";
+    if(!n)return"";
+    return'<div id="bp-sec-'+k.replace(/\W/g,"")+'" style="margin-bottom:18px"><div onclick="crmBpToggle(\''+k+'\')" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:'+(k==="__nor"?"rgba(248,81,73,.1)":"rgba(255,255,255,.04)")+';border-left:4px solid '+m.c+';margin-bottom:10px">'
+     +'<span style="font-size:11px;color:var(--mt)">'+(coll?"▸":"▾")+'</span><span style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:'+m.c+'">'+m.i+m.t+'</span>'
+     +'<span style="font-size:11px;color:var(--mt)">'+n+' BP'+(n===1?"":"s")+' · '+pairsOf(b[k])+' pair'+(pairsOf(b[k])===1?"":"s")+'</span></div>'
+     +(coll?"":'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px">'+b[k].map(function(x){return crmBpCard(x,m.c)}).join("")+'</div>')+'</div>';
+  }).join("");
+  return jump+secs+'<div style="font-size:10px;color:var(--mt)">Each partner sits in the section of its furthest stage; the dot on each route shows that route\'s own stage. Click a route to open the lead.</div>';
+}
 function crmBpHtml(rows){
+  var seg='<div style="display:flex;gap:6px;margin-bottom:12px;align-items:center"><span style="font-size:11px;color:var(--mt)">View:</span>'
+   +[["stage","▦ By stage"],["table","☰ A–Z table"]].map(function(m){return'<button class="fb'+(crmBpMode===m[0]?" active":"")+'" onclick="crmBpSetMode(\''+m[0]+'\')">'+m[1]+'</button>'}).join("")+'</div>';
+  return seg+(crmBpMode==="stage"?crmBpStageHtml(rows):crmBpTableHtml(rows));
+}
+
+function crmBpTableHtml(rows){
   var groups=crmBpGroups(rows);
   if(!groups.length)return'<div style="padding:20px;color:var(--mt)">No partners match these filters.</div>';
   groups.sort(function(a,b){return(b.noRoute-a.noRoute)||a.name.toLowerCase().localeCompare(b.name.toLowerCase())});
