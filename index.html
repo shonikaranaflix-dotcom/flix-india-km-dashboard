@@ -166,6 +166,8 @@ input[type=file]{display:none}
   </div>
 </div>
 <script>
+// Password screen. Server mode (after setup_server_password.sql is run): the password is checked by Supabase and a
+// 12-hour pass is returned; every data request carries it. Legacy mode (SQL not run yet): the old on-page check.
 (function(){
   var HASH='29d755654adab8f2a50b7286b29ce0f71b6fea5fb836cc75e5f9d697aceca217';
   function sha256(str){
@@ -174,23 +176,27 @@ input[type=file]{display:none}
       return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
     });
   }
-  // Check session
-  if(sessionStorage.getItem('flix_auth')==='1'){
-    document.getElementById('pw-gate').style.display='none';
-    return;
-  }
-  window.pwCheck=function(){
-    var val=document.getElementById('pw-input').value;
-    sha256(val).then(function(h){
-      if(h===HASH){
-        sessionStorage.setItem('flix_auth','1');
-        document.getElementById('pw-gate').style.display='none';
-      } else {
-        document.getElementById('pw-err').style.display='block';
-        document.getElementById('pw-input').value='';
-        document.getElementById('pw-input').focus();
-      }
-    });
+  window.FLIX_AUTH={mode:'legacy'};
+  // avoid a flash of the password box when a session already exists; flixBoot() corrects this if the session is not valid
+  if(sessionStorage.getItem('flix_auth')==='1'||sessionStorage.getItem('flix_token')){document.getElementById('pw-gate').style.display='none'}
+  function hide(){document.getElementById('pw-gate').style.display='none'}
+  function err(msg){var e=document.getElementById('pw-err');e.textContent=msg;e.style.display='block';var i=document.getElementById('pw-input');i.value='';i.focus()}
+  window.pwCheck=async function(){
+    var val=document.getElementById('pw-input').value,btn=document.getElementById('pw-btn');
+    if(window.FLIX_AUTH.mode==='server'){
+      btn.disabled=true;btn.textContent='Checking…';
+      try{
+        var r=await fetch(SB_URL+'/rest/v1/rpc/dash_login',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({pw:val})});
+        var j=await r.json();
+        if(r.ok&&j&&j.ok){flixSetToken(j.token,j.exp);hide();flixStart();}
+        else err(j&&j.locked?'Too many attempts. Please wait 10 minutes and try again.':'Incorrect password. Please try again.');
+      }catch(e){err('Could not reach the server. Check your connection and try again.')}
+      btn.disabled=false;btn.textContent='Access Dashboard';
+    }else{
+      var h=await sha256(val);
+      if(h===HASH){sessionStorage.setItem('flix_auth','1');hide();flixStart();}
+      else err('Incorrect password. Please try again.');
+    }
   };
 })();
 </script>
@@ -1137,12 +1143,7 @@ async function delPair(id){
   try{
     var r=await fetch(SB_URL+"/rest/v1/expansion_pairs?id=eq."+id,{
       method:"DELETE",
-      headers:{
-        "apikey":SB_KEY,
-        "Authorization":"Bearer "+SB_KEY,
-        "Content-Type":"application/json",
-        "Prefer":"return=representation"
-      }
+      headers:Object.assign({},sbH)
     });
     var ne=document.getElementById("ne-note");
     if(r.ok||r.status===204){
@@ -2386,14 +2387,48 @@ function renderAll(){
 
 // ── Init: render immediately, then sync from Supabase ─────────────────────────
 renderAll();
-load27();
-loadCrm();
-loadRep();
+
+// ── Sign-in + start-up ────────────────────────────────────────────────────────
+var _flixStarted=false,_flixTimer=null;
+function flixLogout(){sessionStorage.removeItem('flix_token');sessionStorage.removeItem('flix_token_exp');sessionStorage.removeItem('flix_auth');location.reload()}
+function flixSetToken(t,exp){
+  sbH["x-flix-token"]=t;sessionStorage.setItem('flix_token',t);sessionStorage.setItem('flix_token_exp',String(exp));
+  var ms=exp*1000-Date.now();if(_flixTimer)clearTimeout(_flixTimer);
+  if(ms>0)_flixTimer=setTimeout(flixLogout,Math.min(ms,2147000000));
+}
+async function flixCheckPass(){   // password changed on the server / pass expired -> back to the password screen
+  if(window.FLIX_AUTH.mode!=='server'||!sbH["x-flix-token"])return;
+  try{var r=await fetch(SB_URL+"/rest/v1/rpc/dash_ok",{method:"POST",headers:sbH,body:"{}"});if(r.ok&&(await r.json())===false)flixLogout()}catch(e){}
+}
+function flixStart(){
+  if(_flixStarted)return;_flixStarted=true;
+  load27();loadCrm();loadRep();flixSync();
+  setInterval(flixCheckPass,300000);
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")flixCheckPass()});
+}
+async function flixBoot(){
+  var gate=document.getElementById('pw-gate'),mode='legacy';
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/rpc/dash_ready',{method:'POST',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'},body:'{}'});
+    if(r.ok)mode=(await r.json())===true?'server':'legacy';
+  }catch(e){}
+  window.FLIX_AUTH.mode=mode;
+  var show=function(){gate.style.display='flex';var i=document.getElementById('pw-input');if(i)i.focus()};
+  if(mode==='server'){
+    var t=sessionStorage.getItem('flix_token'),exp=+sessionStorage.getItem('flix_token_exp');
+    if(t&&exp*1000>Date.now()){flixSetToken(t,exp);gate.style.display='none';flixStart();flixCheckPass()}
+    else{sessionStorage.removeItem('flix_token');show()}
+  }else{
+    if(sessionStorage.getItem('flix_auth')==='1'){gate.style.display='none';flixStart()}
+    else show();
+  }
+}
+flixBoot();
 
 // Track whether user has made any edits this session
 var _userEdited=false;
 
-(async function(){
+async function flixSync(){
   var badge=document.getElementById("lv-badge");
   try{
     var results=await Promise.all([
@@ -2428,7 +2463,7 @@ var _userEdited=false;
     if(eb){eb.style.display='block';eb.textContent='⚠ Supabase sync failed: '+e.message+' — data shown may be outdated. Click to retry.';eb.onclick=function(){location.reload();}}
     renderAll();
   }
-})();
+}
 
 
 // ── Expansion Plan tab ────────────────────────────────────────────────────────
