@@ -658,8 +658,10 @@ const BUS0={Jan:283,Feb:278,Mar:282,Apr:293,May:331,Jun:348,Jul:348,Aug:348,Sep:
 const TODAY=new Date().toISOString().slice(0,10);
 const DAYS_PER_WEEK=6; // buses run 6 days/week average
 const CANCEL_RATE=0.08;
-const CANCELLED_ACT=[423897,212231,139589,303720,251896,291533,163278,196385,259086]; // Jan-Sep actual cancelled KM
-const KM_CUTOFF='2026-10-31'; // pairs live on/before this date are in on-sale actuals // 8% cancellation applied to new go-live KM forecast
+const CANCELLED_ACT=[341309,208705,131937,254971,251925,273551,165621,199927,265168,327406,458869]; // Jan-Nov: cancelled KM as reported ("km cancelled")
+// Cancelled KM for month index i (0=Jan): reported figure through Nov, December = 8% of (on-sale + signed KM)
+function cancelKm(i,onSale,signed){return i<CANCELLED_ACT.length?CANCELLED_ACT[i]:Math.round(((onSale||0)+(signed||0))*CANCEL_RATE)}
+const KM_CUTOFF='2026-11-10'; // pairs live on/before this date are in on-sale actuals // 8% cancellation applied to new go-live KM forecast
 
 // ── Live data ─────────────────────────────────────────────────────────────────
 
@@ -723,7 +725,7 @@ function newKM(){
   // W43+ goes into toOpen (Existing KM to Open)
   const JUL_CAP_WEEK=42;
   EXP.forEach(r=>{
-    if(!r.go_live||r.go_live<=KM_CUTOFF)return; // on-sale if live by 31 Oct (October go-lives are already in the on-sale actuals)
+    if(!r.go_live||r.go_live<=KM_CUTOFF)return; // on-sale if live by 10 Nov (these buses are already in the on-sale actuals)
     const pb=getPb(r);if(!pb)return;
     const pk=pb*2; // raw KM — cancellation shown separately
     const startW=goLiveWeek(r.go_live);
@@ -869,12 +871,11 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // on-sale (Jul-Dec) + KM-to-open + new signed + pipeline
   var FORECAST_IDX=9; // Oct onwards (index 9) = forecast — cancellation on signed KM onlyec
   var cancel_km=M.map(function(_,i){
-    if(i<9)return -CANCELLED_ACT[i]; // Jan-Sep: actual cancelled KM
-    return -Math.round((sk[i]||0)*CANCEL_RATE); // Oct-Dec: 8% of signed KM only
+    return -cancelKm(i,os[i],sk[i]); // Jan-Nov reported; Dec = 8% of (on-sale + signed)
   });
   var tCANCEL=cancel_km.reduce(function(a,b){return a+b},0);
   function ntNeg(v){return '<td style="color:var(--rd)">'+(v<0?fmtN(v):'-')+'</td>';}
-  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Sep actual · Oct–Dec 8% of signed)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
+  r.push('<tr class="row-sub"><td style="color:var(--rd)">→ Cancelled KM (Jan–Nov reported · Dec 8% of on-sale + signed)</td>'+cancel_km.map(ntNeg).join('')+'<td class="tot-col" style="color:var(--rd)">'+fmtN(tCANCEL)+'</td></tr>');
   // Net forecast = raw forecast minus cancellation
   var fc_net=fc2.map(function(v,i){return i<9?(os[i]||0):v+cancel_km[i]}); // Jan-Sep closed: ⑦ = ① KM on Sale
   var tFC_NET=fc_net.reduce(function(a,b){return a+b},0);window._tFC_NET=tFC_NET;
@@ -885,7 +886,7 @@ function bLV(kOS,sm,pm,fc,ns,np){
   // ⑦b FORECAST — SIGNED ONLY (no pipeline KM)
   var fc2_signed=M.map(function(m,i){
     var raw=(os[i]||0)+(sk[i]||0); // on-sale actuals + signed future KM
-    var cancel=i>=FORECAST_IDX?-Math.round((sk[i]||0)*CANCEL_RATE):0; // Oct-Dec: 8% of signed KM only
+    var cancel=i>=FORECAST_IDX?cancel_km[i]:0; // Oct onwards: same cancelled KM as the row above
     return raw+cancel;
   });
   var tFC2_SIGNED=fc2_signed.reduce(function(a,b){return a+b},0);window._tFC2_SIGNED=tFC2_SIGNED;
@@ -922,7 +923,7 @@ function bKPI(kOS,sm,pm,fc){
   var toKPI=toOpen();
   var fc2_signed_kpi=M.map(function(m,i){
     var raw=(kOS[m]||0)+(sm[m]||0);
-    var cancel=i>=9?-Math.round((sm[m]||0)*CANCEL_RATE):0;
+    var cancel=i>=9?-cancelKm(i,kOS[m],sm[m]):0;
     return raw+cancel;
   });
   var tFC2S=(window._tFC2_SIGNED||0)>0?window._tFC2_SIGNED:fc2_signed_kpi.reduce(function(a,b){return a+b},0);
