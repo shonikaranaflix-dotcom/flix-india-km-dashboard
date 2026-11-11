@@ -2168,7 +2168,7 @@ async function loadRep(){
     var d=await r.json();if(!Array.isArray(d))throw new Error("bad");
     REP=d;repMode="db";
   }catch(e){REP=[];repMode="missing"}
-  renderRep();
+  renderRep();if(typeof ldLive==="function")ldLive();
 }
 function crmSetSub(s){
   crmSub=s;
@@ -2242,19 +2242,20 @@ async function repUpd(el){
     Object.assign(r,j[0]);repMsg("✓ Saved — visible to everyone.","var(--g)");
     if(f==="replacement_type"||f==="pairs"||f==="current_bp"||f==="status"||(f==="line_code"&&body.route))renderRep();
     else document.getElementById("rep-cards").innerHTML=repCards(repFiltered());
+    if(typeof ldLive==="function")ldLive();
   }catch(e){el.value=old==null?"":old;repMsg("✗ Not saved: "+e.message,"var(--rd)")}
 }
 async function repAdd(){
   if(repMode!=="db")return;
   try{
     var j=await crmApi("crm_repurposing","POST","",{pairs:1,status:"Planned",bdm:repBDM!=="all"?repBDM:""},true);
-    REP.push(j[0]);renderRep();repMsg("✓ Line added at the bottom — fill in the details.","var(--g)");
+    REP.push(j[0]);renderRep();if(typeof ldLive==="function")ldLive();repMsg("✓ Line added at the bottom — fill in the details.","var(--g)");
     var t=document.querySelector("#rep-tbl tbody tr:last-child input");if(t){t.scrollIntoView({block:"center"});t.focus()}
   }catch(e){repMsg("✗ Could not add: "+e.message,"var(--rd)")}
 }
 async function repDel(id){
   if(!confirm("Delete this repurposing line? This cannot be undone."))return;
-  try{await crmApi("crm_repurposing","DELETE","?id=eq."+id,null,true);REP=REP.filter(function(x){return x.id!==id});renderRep();repMsg("✓ Deleted.","var(--g)")}
+  try{await crmApi("crm_repurposing","DELETE","?id=eq."+id,null,true);REP=REP.filter(function(x){return x.id!==id});renderRep();if(typeof ldLive==="function")ldLive();repMsg("✓ Deleted.","var(--g)")}
   catch(e){repMsg("✗ Could not delete: "+e.message,"var(--rd)")}
 }
 function repDl(){
@@ -2391,9 +2392,32 @@ function renderLead(){
    +box("Follow-ups overdue",odL.length,top(odL,function(l){return li('<strong>'+crmEsc(l.bp_name||"(no name)")+'</strong> <span style="color:var(--mt)">— due '+crmFmtD(l.next_followup)+(l.bdm?" · "+crmEsc(l.bdm):"")+'</span>')}),"var(--am)")
    +box("Stale leads (no update >"+LD_STALE_DAYS+" days)",stL.length,top(stL,function(l){return li('<strong>'+crmEsc(l.bp_name||"(no name)")+'</strong> <span style="color:var(--mt)">— '+CRM_SHORT[l.stage]+' · '+staleDays(l)+'d</span>')}),"var(--am)")
    +box("BPs without a route",norL.length,top(norL,function(x){return li('<strong>'+crmEsc(x.name)+'</strong>')}),"var(--rd)")+'</div>';
-  el.innerHTML=kpis+mcards+rtab+'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px">'+funnel+rate+'</div>'+bd+attn
+  el.innerHTML=kpis+mcards+rtab+repLeadHtml()+'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:22px">'+funnel+rate+'</div>'+bd+attn
    +'<div style="font-size:10px;color:var(--mt)">Closed = 2027 pair with a bus partner assigned · Buses = pairs × 2 · Targets (3 months before go-live): Apr → sign by 15 Jan · May → 15 Feb · Jun → 15 Mar · Oct → 15 Jul 2027 · Status: At risk = ≤7 days left or fewer than 60% of open pairs have an active lead · Source: Expansion 2027 list + Leads CRM, as of '+crmFmtD(TODAY)+'</div>';
   var asof=document.getElementById("lead-asof");if(asof)asof.textContent="As of "+crmFmtD(TODAY)+" "+TODAY.slice(0,4)+" · live from Supabase";
+}
+function repLeadHtml(){
+  var lbl='font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mt)';
+  if(repMode!=="db")return'<div style="'+lbl+';margin:0 0 8px">Bus repurposing</div><div style="font-size:11px;color:var(--mt);margin-bottom:22px">Repurposing data not available yet.</div>';
+  var rows=REP,bs=function(a){return a.reduce(function(s,r){return s+(+r.pairs||0)*2},0)};
+  var card=function(l,v,s,c){return'<div class="card" style="min-width:140px;flex:1"><div class="kl">'+l+'</div><div class="kv" style="margin-top:6px;white-space:nowrap;color:'+c+'">'+v+'</div><div class="ks" style="margin-top:4px">'+s+'</div></div>'};
+  var same=rows.filter(function(r){return r.replacement_type===REP_TYPES[0]}),nw=rows.filter(function(r){return r.replacement_type===REP_TYPES[1]});
+  var done=rows.filter(function(r){return r.status==="Done"});
+  var cards='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">'
+   +card("Buses to repurpose",bs(rows),rows.length+" lines · "+bs(rows)/2+" pairs","var(--g)")
+   +card("Same BP · new buses",bs(same),same.length+" lines","var(--bl)")
+   +card("New BP",bs(nw),nw.length+" lines","var(--am)")
+   +card("Done",bs(done),(bs(rows)?Math.round(bs(done)/bs(rows)*100):0)+"% of buses","var(--g)")+'</div>';
+  var th='padding:8px 10px;text-align:left;color:var(--mt);font-size:10px;text-transform:uppercase;white-space:nowrap';
+  var td=function(v,x){return'<td style="padding:6px 10px;border-top:1px solid rgba(255,255,255,.06);'+(x||"")+'">'+v+'</td>'};
+  var c="text-align:center";
+  var sts=REP_STATUS.map(function(s){var a=rows.filter(function(r){return r.status===s});return{n:s,l:a.length,b:bs(a),sm:bs(a.filter(function(r){return r.replacement_type===REP_TYPES[0]})),nw:bs(a.filter(function(r){return r.replacement_type===REP_TYPES[1]}))}});
+  var un=rows.filter(function(r){return REP_STATUS.indexOf(r.status)<0});if(un.length)sts.push({n:"Not set",l:un.length,b:bs(un),sm:bs(un.filter(function(r){return r.replacement_type===REP_TYPES[0]})),nw:bs(un.filter(function(r){return r.replacement_type===REP_TYPES[1]}))});
+  var tb='<div style="overflow-x:auto;border-radius:8px;border:1px solid var(--br);margin-bottom:22px"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:rgba(255,255,255,.03)">'
+   +["Status","Lines","Buses","Same BP (buses)","New BP (buses)"].map(function(h){return'<th style="'+th+'">'+h+'</th>'}).join("")+'</tr></thead><tbody>'
+   +sts.map(function(s){return"<tr>"+td('<strong style="color:'+(REP_COL[s.n]||"var(--mt)")+'">'+s.n+'</strong>')+td(s.l,c)+td('<strong>'+s.b+'</strong>',c)+td(s.sm,c)+td(s.nw,c)+"</tr>"}).join("")
+   +'<tr style="background:rgba(255,255,255,.03)">'+td('<strong>Total</strong>')+td(rows.length,c+";font-weight:700")+td(bs(rows),c+";font-weight:700")+td(bs(same),c+";font-weight:700")+td(bs(nw),c+";font-weight:700")+'</tr></tbody></table></div>';
+  return'<div style="'+lbl+';margin:0 0 8px">Bus repurposing — summary</div>'+cards+tb;
 }
 function ldLive(){var t=document.getElementById("tab-lead");if(t&&t.classList.contains("active"))renderLead()}
 function ldPrint(){renderLead();window.print()}
@@ -2401,7 +2425,7 @@ function ldDl(){
   var D=ldCompute(ldMonth);
   var m=[["Go-live month","Sign-by date","Days left","Pairs","Pairs closed","Pairs open","Buses target","Buses closed","Closed %","Open pairs with active lead","Status"]].concat(D.months.map(function(x){return[x.mn,x.target,x.days,x.pairs,x.closed,x.open,x.pairs*2,x.closed*2,x.pct,x.covered,x.status]}));
   var r=[["Route","Go-live months","Target buses","Closed buses","Closed %","Next sign-by","Open pairs with active lead","Partners signed"]].concat(Object.keys(D.routes).map(function(k){var o=D.routes[k];return[o.name,Y27_MN.filter(function(x){return o.months[x]}).map(function(x){return x+" "+o.months[x]}).join(", "),o.pairs*2,o.closed*2,o.pairs?Math.round(o.closed/o.pairs*100):0,o.tg||"done",o.covered,Object.keys(o.bps).join(", ")]}));
-  var wb=XLSX.utils.book_new();[["Month targets",m],["Routes",r]].forEach(function(s){var ws=XLSX.utils.aoa_to_sheet(s[1]);ws["!cols"]=s[1][0].map(function(h){return{wch:Math.max(14,String(h).length+2)}});XLSX.utils.book_append_sheet(wb,ws,s[0])});
+  var wb=XLSX.utils.book_new();[["Month targets",m],["Routes",r],["Repurposing",[["Line code","Route","Current BP","Pairs","Buses","Replacement","Replacement BP","Planned date","Status","BDM","Reason"]].concat(REP.map(function(x){return[x.line_code,x.route,x.current_bp,x.pairs,(+x.pairs||0)*2,x.replacement_type,x.replacement_type===REP_TYPES[0]?x.current_bp:x.replacement_bp,x.planned_date,x.status,x.bdm,x.reason].map(function(v){return v==null?"":v})}))]].forEach(function(s){var ws=XLSX.utils.aoa_to_sheet(s[1]);ws["!cols"]=s[1][0].map(function(h){return{wch:Math.max(14,String(h).length+2)}});XLSX.utils.book_append_sheet(wb,ws,s[0])});
   XLSX.writeFile(wb,"Flix_India_Leadership_Summary.xlsx");
 }
 
